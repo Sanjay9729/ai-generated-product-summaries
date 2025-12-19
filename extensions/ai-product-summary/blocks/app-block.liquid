@@ -1,0 +1,156 @@
+{% comment %}
+  AI Product Summary Block
+  Displays AI-generated product title and description on product pages
+{% endcomment %}
+
+<div id="ai-product-summary-{{ block.id }}" class="ai-product-summary-container">
+  <div class="ai-summary-loading">
+    <p>Loading AI-generated summary...</p>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const productId = {{ product.id | json }};
+    const blockId = {{ block.id | json }};
+    const shopUrl = window.location.hostname;
+
+    async function fetchAISummary() {
+      try {
+        // Use Shopify App Proxy URL - this routes through Shopify to your app
+        const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}`;
+
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch AI summary');
+        }
+
+        const data = await response.json();
+
+        const container = document.getElementById(`ai-product-summary-${blockId}`);
+
+        if (data.productSummary) {
+          container.innerHTML = `
+            <div class="ai-product-summary">
+              ${data.enhancedTitle ? `
+                <h3 class="ai-summary-title">${data.enhancedTitle}</h3>
+              ` : ''}
+              <div class="ai-summary-description">
+                <p>${data.productSummary}</p>
+              </div>
+              <div class="ai-summary-badge">
+                <span>✨ AI Enhanced Description</span>
+              </div>
+            </div>
+          `;
+        } else {
+          container.innerHTML = '';
+        }
+      } catch (error) {
+        console.error('Error fetching AI product summary:', error);
+        const container = document.getElementById(`ai-product-summary-${blockId}`);
+        container.innerHTML = '';
+      }
+    }
+
+    // Fetch summary when page loads
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fetchAISummary);
+    } else {
+      fetchAISummary();
+    }
+  })();
+</script>
+
+<style>
+  .ai-product-summary-container {
+    margin: 20px 0;
+    padding: 0;
+  }
+
+  .ai-summary-loading {
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .ai-product-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 24px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    margin: 20px 0;
+  }
+
+  .ai-summary-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 0 15px 0;
+    color: white;
+    line-height: 1.3;
+  }
+
+  .ai-summary-description {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0 0 15px 0;
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .ai-summary-description p {
+    margin: 0;
+  }
+
+  .ai-summary-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+  }
+
+  .ai-summary-badge span {
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    .ai-product-summary {
+      padding: 18px;
+    }
+
+    .ai-summary-title {
+      font-size: 20px;
+    }
+
+    .ai-summary-description {
+      font-size: 15px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "AI Product Summary",
+  "target": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_title",
+      "label": "Show AI Enhanced Title",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_badge",
+      "label": "Show AI Badge",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

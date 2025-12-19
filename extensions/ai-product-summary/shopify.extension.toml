@@ -1,0 +1,14 @@
+api_version = "2024-10"
+
+[[extensions]]
+
+uid = "a28b4783-0284-eb6a-6a9c-ce60facec00d368a0f78"
+
+type = "theme"
+name = "AI Product Summary"
+handle = "ai-product-summary"
+
+[extensions.settings]
+  [[extensions.settings.blocks]]
+  type = "app"
+  name = "AI Product Summary"
