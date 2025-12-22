@@ -4,16 +4,35 @@ import { connectToMongoDB } from "../../database/connection.js";
 import { generateProductSummary } from "../../backend/services/groqAIService.js";
 
 export const action = async ({ request }) => {
-  const { topic, shop, session, payload } = await authenticate.webhook(request);
-
-  console.log(`Received ${topic} webhook for ${shop}`);
-
-  if (!payload) {
-    throw new Response("No payload", { status: 400 });
-  }
-
   try {
+    console.log("🔔 PRODUCTS_CREATE webhook received - Starting processing...");
+    
+    const { topic, shop, session, payload } = await authenticate.webhook(request);
+    
+    console.log(`📋 Webhook Details:`);
+    console.log(`   Topic: ${topic}`);
+    console.log(`   Shop: ${shop}`);
+    console.log(`   Payload received: ${!!payload}`);
+    console.log(`   Session: ${!!session}`);
+
+    if (!payload) {
+      console.error("❌ No payload received in webhook");
+      throw new Response("No payload", { status: 400 });
+    }
+
+    if (!shop) {
+      console.error("❌ No shop information received");
+      throw new Response("No shop", { status: 400 });
+    }
+
+    console.log(`🏪 Processing product for shop: ${shop}`);
+    console.log(`📦 Product ID: ${payload.id}`);
+    console.log(`📝 Product Title: ${payload.title}`);
+
+    // Connect to MongoDB
+    console.log("🔌 Connecting to MongoDB...");
     await connectToMongoDB();
+    console.log("✅ MongoDB connected successfully");
 
     const product = payload;
 
@@ -32,8 +51,8 @@ export const action = async ({ request }) => {
       updated_at: product.updated_at,
       published_at: product.published_at,
       online_store_url: `https://${shop}/products/${product.handle}`,
-      options: product.options,
-      variants: product.variants.map(variant => ({
+      options: product.options || [],
+      variants: (product.variants || []).map(variant => ({
         id: `gid://shopify/ProductVariant/${variant.id}`,
         title: variant.title,
         price: variant.price,
@@ -45,7 +64,7 @@ export const action = async ({ request }) => {
           id: `gid://shopify/ProductImage/${variant.image_id}`,
         } : null,
       })),
-      images: product.images.map(image => ({
+      images: (product.images || []).map(image => ({
         id: `gid://shopify/ProductImage/${image.id}`,
         url: image.src,
         alt_text: image.alt,
@@ -62,15 +81,15 @@ export const action = async ({ request }) => {
       synced_at: new Date(),
     };
 
+    console.log("💾 Saving product to MongoDB...");
     await updateProduct(productData.shopify_product_id, productData);
-
-    console.log(`✓ Product ${product.title} synced to MongoDB via webhook`);
+    console.log(`✅ Product "${product.title}" saved to MongoDB successfully`);
 
     // Auto-generate AI summary
-    try {
-      if (product.title && productData.description) {
-        console.log(`Auto-generating AI summary for new product: ${product.title}`);
-
+    if (product.title && productData.description) {
+      try {
+        console.log(`🤖 Generating AI summary for: ${product.title}`);
+        
         const aiSummary = await generateProductSummary(
           product.title,
           productData.description
@@ -86,16 +105,21 @@ export const action = async ({ request }) => {
           created_at: new Date(),
         });
 
-        console.log(`✓ AI summary auto-generated for: ${product.title}`);
+        console.log(`✅ AI summary generated for: ${product.title}`);
+      } catch (aiError) {
+        console.error(`⚠️ Failed to generate AI summary for ${product.title}:`, aiError.message);
+        // Don't fail the webhook if AI generation fails
       }
-    } catch (aiError) {
-      console.error(`Failed to auto-generate AI summary:`, aiError.message);
-      // Don't fail the webhook if AI generation fails
+    } else {
+      console.log(`⏭️ Skipping AI summary - missing title or description`);
     }
 
+    console.log(`🎉 PRODUCTS_CREATE webhook completed successfully for ${shop}`);
     return new Response("OK", { status: 200 });
+    
   } catch (error) {
-    console.error("Error processing product webhook:", error);
-    return new Response("Error", { status: 500 });
+    console.error("❌ Error processing PRODUCTS_CREATE webhook:", error);
+    console.error("Error stack:", error.stack);
+    return new Response(`Webhook processing failed: ${error.message}`, { status: 500 });
   }
 };

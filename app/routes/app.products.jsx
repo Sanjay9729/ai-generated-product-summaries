@@ -1,6 +1,7 @@
 import { useLoaderData } from "react-router";
+import { useState } from "react";
 import { authenticate } from "../shopify.server";
-import { syncProductsToMongoDB } from "../../backend/services/shopifyProductService.js";
+import { getAllProducts, getAllAISummaries } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
 
 export const loader = async ({ request }) => {
@@ -9,38 +10,97 @@ export const loader = async ({ request }) => {
   try {
     await connectToMongoDB();
 
-    console.log("Auto-syncing products to MongoDB...");
-    const result = await syncProductsToMongoDB(admin);
+    // Just fetch existing data, no automatic sync needed
+    const products = await getAllProducts();
+    const aiSummaries = await getAllAISummaries();
 
     return {
       syncStatus: {
         success: true,
-        message: `Successfully synced ${result.products_count} products to MongoDB`,
+        message: `Found ${products.length} products and ${aiSummaries.length} AI summaries in MongoDB`,
       },
-      productsCount: result.products_count,
+      productsCount: products.length,
+      aiSummariesCount: aiSummaries.length,
     };
   } catch (error) {
-    console.error("Error auto-syncing products:", error);
+    console.error("Error loading products:", error);
     return {
       syncStatus: {
         success: false,
         error: error.message,
       },
       productsCount: 0,
+      aiSummariesCount: 0,
     };
   }
 };
 
 export default function ProductsPage() {
-  const { syncStatus, productsCount } = useLoaderData();
+  const { syncStatus, productsCount, aiSummariesCount } = useLoaderData();
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const response = await fetch('/api/sync-products');
+      const result = await response.json();
+      setSyncResult(result);
+      
+      // Refresh the page data after sync
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      setSyncResult({ success: false, error: error.message });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleRegisterWebhooks = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const response = await fetch('/api/register-webhooks');
+      const result = await response.json();
+      setSyncResult(result);
+    } catch (error) {
+      setSyncResult({ success: false, error: error.message });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleCheckWebhookStatus = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    
+    try {
+      const response = await fetch('/api/webhook-status');
+      const result = await response.json();
+      setSyncResult(result);
+    } catch (error) {
+      setSyncResult({ success: false, error: error.message });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <s-page heading="Product Management">
       <s-section heading="MongoDB Product Sync">
         <s-paragraph>
-          All products from your Shopify store are automatically synced to your
-          local MongoDB database when you access this page.
+          Products from your Shopify store are automatically synced to MongoDB when:
         </s-paragraph>
+
+        <s-unordered-list>
+          <s-list-item>You install the app (initial sync of all products)</s-list-item>
+          <s-list-item>Products are created, updated, or deleted via webhooks</s-list-item>
+        </s-unordered-list>
 
         {syncStatus && (
           <s-box
@@ -51,16 +111,72 @@ export default function ProductsPage() {
           >
             <s-stack direction="block" gap="tight">
               <s-text variant="headingSm">
-                {syncStatus.success ? "✓ Sync Successful" : "✗ Sync Failed"}
+                {syncStatus.success ? "✓ Database Status" : "✗ Error"}
               </s-text>
               <s-text>
                 {syncStatus.success
-                  ? `Successfully synced ${productsCount} products to MongoDB`
+                  ? syncStatus.message
                   : `Error: ${syncStatus.error}`}
               </s-text>
             </s-stack>
           </s-box>
         )}
+
+        {syncResult && (
+          <s-box
+            padding="base"
+            borderWidth="base"
+            borderRadius="base"
+            background={syncResult.success ? "success-subdued" : "critical-subdued"}
+          >
+            <s-stack direction="block" gap="tight">
+              <s-text variant="headingSm">
+                {syncResult.success ? "✓ Operation Successful" : "✗ Operation Failed"}
+              </s-text>
+              <s-text>
+                {syncResult.message || syncResult.error}
+              </s-text>
+            </s-stack>
+          </s-box>
+        )}
+
+        <s-section heading="Troubleshooting">
+          <s-paragraph>
+            If new products aren't automatically syncing to MongoDB, try these steps:
+          </s-paragraph>
+
+          <s-stack direction="inline" gap="base">
+            <s-button 
+              onClick={handleCheckWebhookStatus}
+              disabled={isSyncing}
+              variant="tertiary"
+            >
+              Check Webhook Status
+            </s-button>
+            
+            <s-button 
+              onClick={handleRegisterWebhooks}
+              disabled={isSyncing}
+              variant="tertiary"
+            >
+              Register Webhooks
+            </s-button>
+            
+            <s-button 
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              {...(isSyncing ? { loading: true } : {})}
+            >
+              Manual Sync Now
+            </s-button>
+          </s-stack>
+
+          <s-paragraph>
+            <s-text variant="bodySm" tone="subdued">
+              Webhooks should automatically handle product sync, but manual sync is available as a fallback.
+            </s-text>
+          </s-paragraph>
+        </s-section>
 
         <s-paragraph>
           <s-text variant="bodySm" tone="subdued">
@@ -75,6 +191,7 @@ export default function ProductsPage() {
           <s-list-item>Product status, vendor, and tags</s-list-item>
           <s-list-item>SEO information</s-list-item>
           <s-list-item>Product options and attributes</s-list-item>
+          <s-list-item>AI-generated summaries (when available)</s-list-item>
         </s-unordered-list>
       </s-section>
 
@@ -91,12 +208,14 @@ export default function ProductsPage() {
         </s-paragraph>
         <s-paragraph>
           <s-text variant="bodySm">
-            <strong>Collections:</strong>
+            <strong>Current Data:</strong>
           </s-text>
         </s-paragraph>
         <s-unordered-list>
-          <s-list-item>products - All Shopify products</s-list-item>
+          <s-list-item>products - {productsCount} Shopify products</s-list-item>
+          <s-list-item>ai_summaries - {aiSummariesCount} AI-generated summaries</s-list-item>
           <s-list-item>sync_logs - Sync operation history</s-list-item>
+          <s-list-item>installation_jobs - App installation tracking</s-list-item>
         </s-unordered-list>
       </s-section>
 

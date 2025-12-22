@@ -10,6 +10,9 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
+// Serve static files (favicon, etc.)
+app.use(express.static('public'));
+
 // API Routes
 app.get('/api/products', async (req, res) => {
   try {
