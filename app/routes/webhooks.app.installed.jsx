@@ -1,5 +1,4 @@
 import { authenticate } from "../shopify.server";
-import { productProcessingQueue } from "../../backend/queue/config.js";
 import { createInstallationJob } from "../../database/collections.js";
 import crypto from "crypto";
 
@@ -33,23 +32,11 @@ export const action = async ({ request }) => {
 
     console.log(`📝 Created installation job: ${jobId}`);
 
-    // Add job to the queue
-    await productProcessingQueue.add(
-      'process-products',
-      {
-        shopUrl: shop,
-        accessToken: session.accessToken,
-        jobId: jobId,
-      },
-      {
-        jobId: jobId,
-      }
-    );
+    // Job created in MongoDB - background processing will be handled separately
+    console.log(`✓ Job ${jobId} created and ready for processing`);
+    console.log(`🚀 Background processing will be started for ${shop}`);
 
-    console.log(`✓ Job ${jobId} added to processing queue`);
-    console.log(`🚀 Background processing started for ${shop}`);
-
-    return new Response("Installation job queued", { status: 200 });
+    return new Response("Installation job created", { status: 200 });
 
   } catch (error) {
     console.error("Error handling app installation webhook:", error);
