@@ -6,9 +6,12 @@ export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
   try {
+    console.log("🔄 Manual product sync triggered via API...");
     await connectToMongoDB();
 
     const result = await syncProductsToMongoDB(admin);
+
+    console.log(`✅ Manual sync completed: ${result.products_count} products synced`);
 
     return {
       success: true,
@@ -16,7 +19,7 @@ export const loader = async ({ request }) => {
       data: result,
     };
   } catch (error) {
-    console.error("Error in sync-products API:", error);
+    console.error("❌ Error in manual sync API:", error);
     return Response.json(
       {
         success: false,
@@ -26,4 +29,9 @@ export const loader = async ({ request }) => {
       { status: 500 }
     );
   }
+};
+
+export const action = async ({ request }) => {
+  // Same as loader for POST requests
+  return loader({ request });
 };

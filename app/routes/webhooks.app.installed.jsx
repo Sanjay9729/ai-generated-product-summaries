@@ -1,5 +1,7 @@
-import { authenticate } from "../shopify.server";
+import { authenticate, registerWebhooks } from "../shopify.server";
 import { createInstallationJob } from "../../database/collections.js";
+import { syncProductsToMongoDB } from "../../backend/services/shopifyProductService.js";
+import { connectToMongoDB } from "../../database/connection.js";
 import crypto from "crypto";
 
 export const action = async ({ request }) => {
@@ -23,7 +25,7 @@ export const action = async ({ request }) => {
     await createInstallationJob({
       job_id: jobId,
       shop_url: shop,
-      status: 'pending',
+      status: 'processing',
       total_products: 0,
       products_processed: 0,
       summaries_generated: 0,
@@ -32,11 +34,56 @@ export const action = async ({ request }) => {
 
     console.log(`📝 Created installation job: ${jobId}`);
 
-    // Job created in MongoDB - background processing will be handled separately
-    console.log(`✓ Job ${jobId} created and ready for processing`);
-    console.log(`🚀 Background processing will be started for ${shop}`);
+    // Register webhooks automatically after installation
+    try {
+      console.log(`🔗 Registering webhooks for ${shop}...`);
+      await registerWebhooks(session);
+      console.log(`✓ Webhooks registered successfully for ${shop}`);
+      console.log(`🎯 Products will now auto-sync to MongoDB when added/updated`);
+    } catch (webhookError) {
+      console.error(`Failed to register webhooks for ${shop}:`, webhookError);
+      // Continue even if webhook registration fails
+    }
 
-    return new Response("Installation job created", { status: 200 });
+    // Trigger immediate product sync during installation
+    try {
+      console.log(`🚀 Starting immediate product sync for ${shop}...`);
+      await connectToMongoDB();
+      
+      const syncResult = await syncProductsToMongoDB(admin);
+      
+      console.log(`✓ Installation sync completed: ${syncResult.products_count} products synced`);
+      
+      // Update job status to completed
+      await createInstallationJob({
+        job_id: jobId,
+        shop_url: shop,
+        status: 'completed',
+        total_products: syncResult.products_count,
+        products_processed: syncResult.products_count,
+        summaries_generated: syncResult.products_count, // Estimate: 1 summary per product
+        progress_percentage: 100,
+      });
+
+      console.log(`🎉 Installation process completed successfully for ${shop}`);
+      console.log(`✅ All existing products are now in MongoDB`);
+      console.log(`🔄 Future products will auto-sync via webhooks`);
+
+    } catch (syncError) {
+      console.error(`Failed to sync products during installation:`, syncError);
+      
+      // Update job status to failed but keep webhooks active
+      await createInstallationJob({
+        job_id: jobId,
+        shop_url: shop,
+        status: 'failed',
+        error_message: syncError.message,
+      });
+      
+      console.log(`⚠️ Installation completed but initial sync failed. Webhooks will still capture future products.`);
+    }
+
+    return new Response("Installation completed successfully", { status: 200 });
 
   } catch (error) {
     console.error("Error handling app installation webhook:", error);
