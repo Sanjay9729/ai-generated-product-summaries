@@ -4,7 +4,6 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { getLatestInstallationJob, createInstallationJob } from "../../database/collections.js";
-import { productProcessingQueue } from "../../backend/queue/config.js";
 import crypto from "crypto";
 
 export const loader = async ({ request }) => {
@@ -14,7 +13,7 @@ export const loader = async ({ request }) => {
   try {
     const existingJob = await getLatestInstallationJob(session.shop);
 
-    // If no job exists, create one and queue it (first-time install)
+    // If no job exists, create one (first-time install)
     if (!existingJob) {
       const jobId = `install-${session.shop}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
@@ -28,19 +27,7 @@ export const loader = async ({ request }) => {
         progress_percentage: 0,
       });
 
-      await productProcessingQueue.add(
-        'process-products',
-        {
-          shopUrl: session.shop,
-          accessToken: session.accessToken,
-          jobId: jobId,
-        },
-        {
-          jobId: jobId,
-        }
-      );
-
-      console.log(`🚀 First-time install detected - Background job ${jobId} started for ${session.shop}`);
+      console.log(`🚀 First-time install detected - Job ${jobId} created for ${session.shop}`);
 
       return { isFirstInstall: true, jobId };
     }
@@ -273,7 +260,7 @@ export default function Index({ loaderData }) {
             </s-link>
           </s-list-item>
           <s-list-item>
-            Explore Shopify&apos;s API with{" "}
+            Explore Shopify's API with{" "}
             <s-link
               href="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
               target="_blank"
