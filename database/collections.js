@@ -105,11 +105,19 @@ export async function getInstallationJobsCollection() {
 
 export async function createInstallationJob(jobData) {
   const collection = await getInstallationJobsCollection();
-  const result = await collection.insertOne({
-    ...jobData,
-    created_at: new Date(),
-    status: 'pending',
-  });
+  const result = await collection.updateOne(
+    { job_id: jobData.job_id },
+    {
+      $set: {
+        ...jobData,
+        updated_at: new Date(),
+      },
+      $setOnInsert: {
+        created_at: new Date(),
+      }
+    },
+    { upsert: true }
+  );
   return result;
 }
 
