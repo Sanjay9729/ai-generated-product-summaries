@@ -142,10 +142,8 @@ export default function MongoDBViewer() {
                       <s-text variant="bodySm">
                         <strong>Description:</strong>
                       </s-text>
-                      <s-text variant="bodySm" tone="subdued">
-                        {product.description.length > 200
-                          ? product.description.substring(0, 200) + "..."
-                          : product.description}
+                      <s-text variant="bodySm" tone="subdued">  
+                         {product.description}
                       </s-text>
                     </s-box>
                   )}

@@ -7,20 +7,20 @@ import { getLatestInstallationJob, createInstallationJob } from "../../database/
 import crypto from "crypto";
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
 
   // Check if this shop has ever had an installation job
   try {
     const existingJob = await getLatestInstallationJob(session.shop);
 
-    // If no job exists, create one (first-time install)
+    // If no job exists, create one and trigger automatic sync (first-time install)
     if (!existingJob) {
       const jobId = `install-${session.shop}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
       await createInstallationJob({
         job_id: jobId,
         shop_url: session.shop,
-        status: 'pending',
+        status: 'processing',
         total_products: 0,
         products_processed: 0,
         summaries_generated: 0,
@@ -28,8 +28,41 @@ export const loader = async ({ request }) => {
       });
 
       console.log(`🚀 First-time install detected - Job ${jobId} created for ${session.shop}`);
+      console.log(`🔄 Starting automatic product sync...`);
 
-      return { isFirstInstall: true, jobId };
+      // Trigger automatic sync in the background
+      const { syncProductsToMongoDB } = await import('../../backend/services/shopifyProductService.js');
+      const { connectToMongoDB } = await import('../../database/connection.js');
+
+      // Don't await - run in background
+      (async () => {
+        try {
+          await connectToMongoDB();
+          const syncResult = await syncProductsToMongoDB(admin);
+
+          await createInstallationJob({
+            job_id: jobId,
+            shop_url: session.shop,
+            status: 'completed',
+            total_products: syncResult.products_count,
+            products_processed: syncResult.products_count,
+            summaries_generated: syncResult.products_count,
+            progress_percentage: 100,
+          });
+
+          console.log(`✅ Automatic sync completed: ${syncResult.products_count} products synced for ${session.shop}`);
+        } catch (error) {
+          console.error(`❌ Automatic sync failed for ${session.shop}:`, error);
+          await createInstallationJob({
+            job_id: jobId,
+            shop_url: session.shop,
+            status: 'failed',
+            error_message: error.message,
+          });
+        }
+      })();
+
+      return { isFirstInstall: true, jobId, autoSyncTriggered: true };
     }
 
     return { isFirstInstall: false, existingJob: existingJob?.status };
@@ -118,10 +151,10 @@ export default function Index({ loaderData }) {
   }, [fetcher.data?.product?.id, shopify]);
 
   useEffect(() => {
-    if (loaderData?.isFirstInstall) {
-      shopify.toast.show("🚀 AI product sync started! Check Installation Status page for progress.");
+    if (loaderData?.isFirstInstall && loaderData?.autoSyncTriggered) {
+      shopify.toast.show("🚀 Automatic product sync started! Your Shopify products are being synced to MongoDB in the background.");
     }
-  }, [loaderData?.isFirstInstall, shopify]);
+  }, [loaderData?.isFirstInstall, loaderData?.autoSyncTriggered, shopify]);
 
   const generateProduct = () => fetcher.submit({}, { method: "POST" });
 
