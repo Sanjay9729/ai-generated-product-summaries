@@ -1,5 +1,4 @@
 import { authenticate } from "../shopify.server";
-import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import db from "../db.server";
 
 export const action = async ({ request }) => {
