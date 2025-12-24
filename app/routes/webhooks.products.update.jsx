@@ -1,4 +1,4 @@
-import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
+import { authenticate } from "../shopify.server";
 import { updateProduct, saveAISummary, getAISummary } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
 import { generateProductSummary } from "../../backend/services/groqAIService.js";
@@ -7,29 +7,13 @@ export const action = async ({ request }) => {
   try {
     console.log("🔔 PRODUCTS_UPDATE webhook received");
 
-    // Explicit HMAC verification for compliance
-    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+    // Shopify's built-in authentication with HMAC verification
+    const { topic, shop, session, admin, payload } = await authenticate.webhook(request);
 
-    if (!hmacVerified) {
-      console.error("❌ HMAC verification failed - rejecting webhook");
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    // Verify this is actually a PRODUCTS_UPDATE webhook
-    // Shopify sends topics as 'products/update' but our constant is 'PRODUCTS_UPDATE'
-    const expectedTopic = 'PRODUCTS_UPDATE';
-    const actualTopic = topic.replace('/', '_').toUpperCase();
-    
-    if (actualTopic !== expectedTopic) {
-      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
-      return new Response("Invalid webhook topic", { status: 400 });
-    }
-
-    console.log(`📋 HMAC-verified webhook details:`);
+    console.log(`📋 Webhook details:`);
     console.log(`   Topic: ${topic}`);
     console.log(`   Shop: ${shop}`);
     console.log(`   Payload received: ${!!payload}`);
-    console.log(`   HMAC Verified: ${hmacVerified}`);
 
     if (!payload) {
       console.error("❌ No payload received in webhook");

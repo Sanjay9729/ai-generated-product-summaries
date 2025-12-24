@@ -1,5 +1,4 @@
-import { registerWebhooks } from "../shopify.server";
-import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
+import { authenticate, registerWebhooks } from "../shopify.server";
 import { createInstallationJob } from "../../database/collections.js";
 import { syncProductsToMongoDB } from "../../backend/services/shopifyProductService.js";
 import { connectToMongoDB } from "../../database/connection.js";
@@ -9,30 +8,10 @@ export const action = async ({ request }) => {
   try {
     console.log("📦 App installation webhook received");
 
-    // Explicit HMAC verification for compliance
-    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+    // Shopify's built-in authentication with HMAC verification
+    const { topic, shop, session, admin } = await authenticate.webhook(request);
 
-    if (!hmacVerified) {
-      console.error("❌ HMAC verification failed - rejecting webhook");
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    if (!shop || !topic) {
-      console.error("❌ Missing shop or topic in webhook");
-      return new Response("Missing shop or topic", { status: 400 });
-    }
-
-    // Verify this is actually an APP_INSTALLED webhook
-    // Shopify sends topics as 'app/installed' but our constant is 'APP_INSTALLED'
-    const expectedTopic = 'APP_INSTALLED';
-    const actualTopic = topic.replace('/', '_').toUpperCase();
-    
-    if (actualTopic !== expectedTopic) {
-      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
-      return new Response("Invalid webhook topic", { status: 400 });
-    }
-
-    console.log(`✓ HMAC-verified app installed on shop: ${shop}`);
+    console.log(`✓ App installed on shop: ${shop}`);
 
     // Generate unique job ID
     const jobId = `install-${shop}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
