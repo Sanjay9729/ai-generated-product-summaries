@@ -1,20 +1,30 @@
 import { authenticate } from "../shopify.server";
+import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import db from "../db.server";
 
 export const action = async ({ request }) => {
   try {
     console.log("🔔 APP_SCOPES_UPDATE webhook received");
 
-    // Enhanced HMAC verification and authentication
-    const { payload, session, topic, shop } = await authenticate.webhook(request);
+    // Explicit HMAC verification for compliance
+    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+
+    if (!hmacVerified) {
+      console.error("❌ HMAC verification failed - rejecting webhook");
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     // Verify this is actually an APP_SCOPES_UPDATE webhook
-    if (topic !== 'APP_SCOPES_UPDATE') {
-      console.error(`❌ Invalid webhook topic: ${topic}`);
+    // Shopify sends topics as 'app/scopes_update' but our constant is 'APP_SCOPES_UPDATE'
+    const expectedTopic = 'APP_SCOPES_UPDATE';
+    const actualTopic = topic.replace('/', '_').toUpperCase();
+    
+    if (actualTopic !== expectedTopic) {
+      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
       return new Response("Invalid webhook topic", { status: 400 });
     }
 
-    console.log(`Received ${topic} webhook for ${shop}`);
+    console.log(`Received HMAC-verified ${topic} webhook for ${shop}`);
 
     if (!payload) {
       console.error(`❌ No payload received for ${topic}`);
@@ -30,8 +40,10 @@ export const action = async ({ request }) => {
     console.log(`   Current scopes: ${current}`);
 
     // Update the session with new scopes if session exists
-    if (session) {
-      try {
+    try {
+      const { session } = await authenticate.webhook(request);
+      
+      if (session) {
         await db.session.update({
           where: {
             id: session.id,
@@ -41,11 +53,11 @@ export const action = async ({ request }) => {
           },
         });
         console.log(`✓ Session scopes updated for shop: ${shop}`);
-      } catch (updateError) {
-        console.error(`❌ Failed to update session scopes for ${shop}:`, updateError);
+      } else {
+        console.log(`ℹ️ No session found for shop: ${shop}`);
       }
-    } else {
-      console.log(`ℹ️ No session found for shop: ${shop}`);
+    } catch (updateError) {
+      console.error(`❌ Failed to update session scopes for ${shop}:`, updateError);
     }
 
     // Log the scope change for monitoring and compliance

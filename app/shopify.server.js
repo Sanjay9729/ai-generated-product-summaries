@@ -20,20 +20,20 @@ const shopify = shopifyApp({
     expiringOfflineAccessTokens: true,
   },
   webhooks: {
-    // Mandatory compliance webhooks for App Store
+    // Mandatory compliance webhooks for App Store with HMAC verification
     APP_INSTALLED: {
       deliveryMethod: "http",
       callbackUrl: "/webhooks/app/installed",
     },
     APP_UNINSTALLED: {
-      deliveryMethod: "http",
+      deliveryMethod: "http", 
       callbackUrl: "/webhooks/app/uninstalled",
     },
     APP_SCOPES_UPDATE: {
       deliveryMethod: "http",
       callbackUrl: "/webhooks/app/scopes_update",
     },
-    // Product webhooks
+    // Product webhooks with HMAC verification
     PRODUCTS_CREATE: {
       deliveryMethod: "http",
       callbackUrl: "/webhooks/products/create",
@@ -46,6 +46,10 @@ const shopify = shopifyApp({
       deliveryMethod: "http",
       callbackUrl: "/webhooks/products/delete",
     },
+  },
+  // Explicit HMAC verification configuration
+  webhookHandlers: {
+    hmacVerify: true, // Enable HMAC verification
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
