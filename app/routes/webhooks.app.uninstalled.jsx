@@ -1,29 +1,14 @@
-import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
+import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 export const action = async ({ request }) => {
   try {
     console.log("🔔 APP_UNINSTALLED webhook received");
 
-    // Explicit HMAC verification for compliance
-    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+    // Shopify's built-in authentication with HMAC verification
+    const { topic, shop, session } = await authenticate.webhook(request);
 
-    if (!hmacVerified) {
-      console.error("❌ HMAC verification failed - rejecting webhook");
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    // Verify this is actually an APP_UNINSTALLED webhook
-    // Shopify sends topics as 'app/uninstalled' but our constant is 'APP_UNINSTALLED'
-    const expectedTopic = 'APP_UNINSTALLED';
-    const actualTopic = topic.replace('/', '_').toUpperCase();
-    
-    if (actualTopic !== expectedTopic) {
-      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
-      return new Response("Invalid webhook topic", { status: 400 });
-    }
-
-    console.log(`Received HMAC-verified ${topic} webhook for ${shop}`);
+    console.log(`Received ${topic} webhook for ${shop}`);
 
     // Webhook requests can trigger multiple times and after an app has already been uninstalled.
     // If this webhook already ran, the session may have been deleted previously.

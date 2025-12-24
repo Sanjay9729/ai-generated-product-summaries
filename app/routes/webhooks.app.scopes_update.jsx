@@ -1,29 +1,14 @@
-import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
+import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 export const action = async ({ request }) => {
   try {
     console.log("🔔 APP_SCOPES_UPDATE webhook received");
 
-    // Explicit HMAC verification for compliance
-    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+    // Shopify's built-in authentication with HMAC verification
+    const { topic, shop, session, payload } = await authenticate.webhook(request);
 
-    if (!hmacVerified) {
-      console.error("❌ HMAC verification failed - rejecting webhook");
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    // Verify this is actually an APP_SCOPES_UPDATE webhook
-    // Shopify sends topics as 'app/scopes_update' but our constant is 'APP_SCOPES_UPDATE'
-    const expectedTopic = 'APP_SCOPES_UPDATE';
-    const actualTopic = topic.replace('/', '_').toUpperCase();
-    
-    if (actualTopic !== expectedTopic) {
-      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
-      return new Response("Invalid webhook topic", { status: 400 });
-    }
-
-    console.log(`Received HMAC-verified ${topic} webhook for ${shop}`);
+    console.log(`Received ${topic} webhook for ${shop}`);
 
     if (!payload) {
       console.error(`❌ No payload received for ${topic}`);

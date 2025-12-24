@@ -47,10 +47,6 @@ const shopify = shopifyApp({
       callbackUrl: "/webhooks/products/delete",
     },
   },
-  // Explicit HMAC verification configuration
-  webhookHandlers: {
-    hmacVerify: true, // Enable HMAC verification
-  },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
