@@ -1,4 +1,5 @@
 import { authenticate } from "../shopify.server";
+import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import { updateProduct, saveAISummary, getAISummary } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
 import { generateProductSummary } from "../../backend/services/groqAIService.js";
@@ -7,20 +8,29 @@ export const action = async ({ request }) => {
   try {
     console.log("🔔 PRODUCTS_UPDATE webhook received");
 
-    // Enhanced HMAC verification and webhook authentication
-    const { topic, shop, session, payload } = await authenticate.webhook(request);
+    // Explicit HMAC verification for compliance
+    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+
+    if (!hmacVerified) {
+      console.error("❌ HMAC verification failed - rejecting webhook");
+      return new Response("Unauthorized", { status: 401 });
+    }
 
     // Verify this is actually a PRODUCTS_UPDATE webhook
-    if (topic !== 'PRODUCTS_UPDATE') {
-      console.error(`❌ Invalid webhook topic: ${topic}`);
+    // Shopify sends topics as 'products/update' but our constant is 'PRODUCTS_UPDATE'
+    const expectedTopic = 'PRODUCTS_UPDATE';
+    const actualTopic = topic.replace('/', '_').toUpperCase();
+    
+    if (actualTopic !== expectedTopic) {
+      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
       return new Response("Invalid webhook topic", { status: 400 });
     }
 
-    console.log(`📋 Webhook Details:`);
+    console.log(`📋 HMAC-verified webhook details:`);
     console.log(`   Topic: ${topic}`);
     console.log(`   Shop: ${shop}`);
     console.log(`   Payload received: ${!!payload}`);
-    console.log(`   Session: ${!!session}`);
+    console.log(`   HMAC Verified: ${hmacVerified}`);
 
     if (!payload) {
       console.error("❌ No payload received in webhook");
@@ -96,7 +106,7 @@ export const action = async ({ request }) => {
 
     console.log("💾 Updating product in MongoDB...");
     await updateProduct(productData.shopify_product_id, productData);
-    console.log(`✅ Product "${product.title}" updated in MongoDB via webhook`);
+    console.log(`✅ Product "${product.title}" updated in MongoDB via HMAC-verified webhook`);
 
     // Auto-generate AI summary if it doesn't exist
     try {

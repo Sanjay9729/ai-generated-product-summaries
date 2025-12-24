@@ -1,44 +1,74 @@
-# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+# Learn more about configuring your app at
+# https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5dedf37982a513d8341c9b3bca646d88"
-name = "Ai Generated Product Summaries"
+name = "AI Product Summary Generator"
 application_url = "https://ai-generated-product-summaries.onrender.com"
 embedded = true
 
+# ---------------------------
+# Build
+# ---------------------------
 [build]
 automatically_update_urls_on_dev = true
 
+# ---------------------------
+# Webhooks
+# ---------------------------
 [webhooks]
-api_version = "2026-01"
+api_version = "2024-10"
 
-  [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
+# App lifecycle
+[[webhooks.subscriptions]]
+topics = ["app/uninstalled"]
+uri = "/webhooks/app/uninstalled"
 
-  [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
+[[webhooks.subscriptions]]
+topics = ["app/scopes_update"]
+uri = "/webhooks/app/scopes_update"
 
-  [[webhooks.subscriptions]]
-  topics = [ "products/create" ]
-  uri = "/webhooks/products/create"
+# Product sync webhooks
+[[webhooks.subscriptions]]
+topics = ["products/create"]
+uri = "/webhooks/products/create"
 
-  [[webhooks.subscriptions]]
-  topics = [ "products/update" ]
-  uri = "/webhooks/products/update"
+[[webhooks.subscriptions]]
+topics = ["products/update"]
+uri = "/webhooks/products/update"
 
-  [[webhooks.subscriptions]]
-  topics = [ "products/delete" ]
-  uri = "/webhooks/products/delete"
+[[webhooks.subscriptions]]
+topics = ["products/delete"]
+uri = "/webhooks/products/delete"
 
+# ---------------------------
+# 🔐 Mandatory Compliance Webhooks (REQUIRED)
+# ---------------------------
+[[webhooks.subscriptions]]
+compliance_topics = [
+  "customers/data_request",
+  "customers/redact",
+  "shop/redact"
+]
+uri = "/webhooks/compliance"
+
+# ---------------------------
+# Access scopes
+# ---------------------------
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products"
 
+# ---------------------------
+# Auth
+# ---------------------------
 [auth]
-redirect_urls = [ "https://ai-generated-product-summaries.onrender.com/api/auth" ]
+redirect_urls = [
+  "https://ai-generated-product-summaries.onrender.com/api/auth"
+]
 
+# ---------------------------
+# App Proxy
+# ---------------------------
 [app_proxy]
-url = "https://ai-generated-product-summaries.onrender.com/api/proxy"
-subpath = "ai-summaries"
 prefix = "apps"
+subpath = "ai-summaries"
+url = "https://ai-generated-product-summaries.onrender.com/api/proxy"
