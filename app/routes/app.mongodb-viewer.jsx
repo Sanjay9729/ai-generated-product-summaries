@@ -33,7 +33,7 @@ export default function MongoDBViewer() {
   const { products, productsCount, syncLogs, error } = useLoaderData();
 
   return (
-    <s-page heading="MongoDB Database Viewer">
+    <s-page heading="Product Sync Dashboard">
       {error && (
         <s-section>
           <s-box
