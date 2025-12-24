@@ -1,4 +1,4 @@
-import { authenticate } from "../shopify.server";
+import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import db from "../db.server";
 
 export const action = async ({ request }) => {
@@ -40,21 +40,15 @@ export const action = async ({ request }) => {
 
     // Update the session with new scopes if session exists
     try {
-      const { session } = await authenticate.webhook(request);
-      
-      if (session) {
-        await db.session.update({
-          where: {
-            id: session.id,
-          },
-          data: {
-            scope: current.toString(),
-          },
-        });
-        console.log(`✓ Session scopes updated for shop: ${shop}`);
-      } else {
-        console.log(`ℹ️ No session found for shop: ${shop}`);
-      }
+      await db.session.updateMany({
+        where: {
+          shop: shop,
+        },
+        data: {
+          scope: current.toString(),
+        },
+      });
+      console.log(`✓ Session scopes updated for shop: ${shop}`);
     } catch (updateError) {
       console.error(`❌ Failed to update session scopes for ${shop}:`, updateError);
     }
