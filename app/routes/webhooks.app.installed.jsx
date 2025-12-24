@@ -8,12 +8,18 @@ export const action = async ({ request }) => {
   try {
     console.log("📦 App installation webhook received");
 
-    // Authenticate the webhook
-    const { shop, session, admin } = await authenticate.webhook(request);
+    // Enhanced HMAC verification and webhook authentication
+    const { shop, session, admin, topic } = await authenticate.webhook(request);
 
     if (!shop || !session) {
-      console.error("Missing shop or session in webhook");
-      return new Response("Missing shop or session", { status: 400 });
+      console.error("❌ Missing shop or session in webhook - possible security issue");
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Verify this is actually an APP_INSTALLED webhook
+    if (topic !== 'APP_INSTALLED') {
+      console.error(`❌ Invalid webhook topic: ${topic}`);
+      return new Response("Invalid webhook topic", { status: 400 });
     }
 
     console.log(`✓ App installed on shop: ${shop}`);
@@ -86,7 +92,8 @@ export const action = async ({ request }) => {
     return new Response("Installation completed successfully", { status: 200 });
 
   } catch (error) {
-    console.error("Error handling app installation webhook:", error);
+    console.error("❌ Error handling app installation webhook:", error);
+    // Don't expose internal error details to maintain security
     return new Response("Webhook processing failed", { status: 500 });
   }
 };

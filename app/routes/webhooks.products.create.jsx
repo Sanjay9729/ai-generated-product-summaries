@@ -7,7 +7,14 @@ export const action = async ({ request }) => {
   try {
     console.log("🔔 PRODUCTS_CREATE webhook received - Starting processing...");
     
+    // Enhanced HMAC verification and webhook authentication
     const { topic, shop, session, payload } = await authenticate.webhook(request);
+    
+    // Verify this is actually a PRODUCTS_CREATE webhook
+    if (topic !== 'PRODUCTS_CREATE') {
+      console.error(`❌ Invalid webhook topic: ${topic}`);
+      return new Response("Invalid webhook topic", { status: 400 });
+    }
     
     console.log(`📋 Webhook Details:`);
     console.log(`   Topic: ${topic}`);
@@ -36,47 +43,53 @@ export const action = async ({ request }) => {
 
     const product = payload;
 
+    // Validate required product fields for compliance
+    if (!product.id || !product.title) {
+      console.error("❌ Product missing required fields (id or title)");
+      return new Response("Invalid product data", { status: 400 });
+    }
+
     // Map webhook payload to our MongoDB structure
     const productData = {
       shopify_product_id: `gid://shopify/Product/${product.id}`,
       title: product.title,
       description: product.body_html ? product.body_html.replace(/<[^>]*>/g, '') : '',
       description_html: product.body_html,
-      handle: product.handle,
-      status: product.status.toUpperCase(),
-      vendor: product.vendor,
-      product_type: product.product_type,
+      handle: product.handle || '',
+      status: product.status ? product.status.toUpperCase() : 'ACTIVE',
+      vendor: product.vendor || '',
+      product_type: product.product_type || '',
       tags: product.tags ? product.tags.split(', ') : [],
-      created_at: product.created_at,
-      updated_at: product.updated_at,
+      created_at: product.created_at || new Date().toISOString(),
+      updated_at: product.updated_at || new Date().toISOString(),
       published_at: product.published_at,
-      online_store_url: `https://${shop}/products/${product.handle}`,
+      online_store_url: `https://${shop}/products/${product.handle || ''}`,
       options: product.options || [],
       variants: (product.variants || []).map(variant => ({
         id: `gid://shopify/ProductVariant/${variant.id}`,
         title: variant.title,
-        price: variant.price,
+        price: variant.price || '0.00',
         compare_at_price: variant.compare_at_price,
-        sku: variant.sku,
-        barcode: variant.barcode,
-        inventory_quantity: variant.inventory_quantity,
+        sku: variant.sku || '',
+        barcode: variant.barcode || '',
+        inventory_quantity: variant.inventory_quantity || 0,
         image: variant.image_id ? {
           id: `gid://shopify/ProductImage/${variant.image_id}`,
         } : null,
       })),
       images: (product.images || []).map(image => ({
         id: `gid://shopify/ProductImage/${image.id}`,
-        url: image.src,
-        alt_text: image.alt,
-        width: image.width,
-        height: image.height,
+        url: image.src || '',
+        alt_text: image.alt || '',
+        width: image.width || 0,
+        height: image.height || 0,
       })),
       featured_image: product.image ? {
         id: `gid://shopify/ProductImage/${product.image.id}`,
-        url: product.image.src,
-        alt_text: product.image.alt,
-        width: product.image.width,
-        height: product.image.height,
+        url: product.image.src || '',
+        alt_text: product.image.alt || '',
+        width: product.image.width || 0,
+        height: product.image.height || 0,
       } : null,
       synced_at: new Date(),
     };
