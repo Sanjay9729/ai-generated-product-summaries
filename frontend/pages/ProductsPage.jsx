@@ -6,7 +6,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <s-page heading="Product Management">
+    <s-page heading="Product Management s">
       <s-section heading="MongoDB Product Sync">
         <s-paragraph>
           All products from your Shopify store are automatically synced to your

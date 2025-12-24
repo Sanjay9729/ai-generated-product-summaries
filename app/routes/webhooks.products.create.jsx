@@ -1,4 +1,5 @@
 import { authenticate } from "../shopify.server";
+import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import { updateProduct, saveAISummary } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
 import { generateProductSummary } from "../../backend/services/groqAIService.js";
@@ -7,13 +8,29 @@ export const action = async ({ request }) => {
   try {
     console.log("🔔 PRODUCTS_CREATE webhook received - Starting processing...");
     
-    const { topic, shop, session, payload } = await authenticate.webhook(request);
+    // Explicit HMAC verification for compliance
+    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
+
+    if (!hmacVerified) {
+      console.error("❌ HMAC verification failed - rejecting webhook");
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    // Verify this is actually a PRODUCTS_CREATE webhook
+    // Shopify sends topics as 'products/create' but our constant is 'PRODUCTS_CREATE'
+    const expectedTopic = 'PRODUCTS_CREATE';
+    const actualTopic = topic.replace('/', '_').toUpperCase();
     
-    console.log(`📋 Webhook Details:`);
+    if (actualTopic !== expectedTopic) {
+      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
+      return new Response("Invalid webhook topic", { status: 400 });
+    }
+    
+    console.log(`📋 HMAC-verified webhook details:`);
     console.log(`   Topic: ${topic}`);
     console.log(`   Shop: ${shop}`);
     console.log(`   Payload received: ${!!payload}`);
-    console.log(`   Session: ${!!session}`);
+    console.log(`   HMAC Verified: ${hmacVerified}`);
 
     if (!payload) {
       console.error("❌ No payload received in webhook");
@@ -36,47 +53,53 @@ export const action = async ({ request }) => {
 
     const product = payload;
 
+    // Validate required product fields for compliance
+    if (!product.id || !product.title) {
+      console.error("❌ Product missing required fields (id or title)");
+      return new Response("Invalid product data", { status: 400 });
+    }
+
     // Map webhook payload to our MongoDB structure
     const productData = {
       shopify_product_id: `gid://shopify/Product/${product.id}`,
       title: product.title,
       description: product.body_html ? product.body_html.replace(/<[^>]*>/g, '') : '',
       description_html: product.body_html,
-      handle: product.handle,
-      status: product.status.toUpperCase(),
-      vendor: product.vendor,
-      product_type: product.product_type,
+      handle: product.handle || '',
+      status: product.status ? product.status.toUpperCase() : 'ACTIVE',
+      vendor: product.vendor || '',
+      product_type: product.product_type || '',
       tags: product.tags ? product.tags.split(', ') : [],
-      created_at: product.created_at,
-      updated_at: product.updated_at,
+      created_at: product.created_at || new Date().toISOString(),
+      updated_at: product.updated_at || new Date().toISOString(),
       published_at: product.published_at,
-      online_store_url: `https://${shop}/products/${product.handle}`,
+      online_store_url: `https://${shop}/products/${product.handle || ''}`,
       options: product.options || [],
       variants: (product.variants || []).map(variant => ({
         id: `gid://shopify/ProductVariant/${variant.id}`,
         title: variant.title,
-        price: variant.price,
+        price: variant.price || '0.00',
         compare_at_price: variant.compare_at_price,
-        sku: variant.sku,
-        barcode: variant.barcode,
-        inventory_quantity: variant.inventory_quantity,
+        sku: variant.sku || '',
+        barcode: variant.barcode || '',
+        inventory_quantity: variant.inventory_quantity || 0,
         image: variant.image_id ? {
           id: `gid://shopify/ProductImage/${variant.image_id}`,
         } : null,
       })),
       images: (product.images || []).map(image => ({
         id: `gid://shopify/ProductImage/${image.id}`,
-        url: image.src,
-        alt_text: image.alt,
-        width: image.width,
-        height: image.height,
+        url: image.src || '',
+        alt_text: image.alt || '',
+        width: image.width || 0,
+        height: image.height || 0,
       })),
       featured_image: product.image ? {
         id: `gid://shopify/ProductImage/${product.image.id}`,
-        url: product.image.src,
-        alt_text: product.image.alt,
-        width: product.image.width,
-        height: product.image.height,
+        url: product.image.src || '',
+        alt_text: product.image.alt || '',
+        width: product.image.width || 0,
+        height: product.image.height || 0,
       } : null,
       synced_at: new Date(),
     };

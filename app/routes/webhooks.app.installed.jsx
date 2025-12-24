@@ -1,4 +1,5 @@
 import { authenticate, registerWebhooks } from "../shopify.server";
+import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import { createInstallationJob } from "../../database/collections.js";
 import { syncProductsToMongoDB } from "../../backend/services/shopifyProductService.js";
 import { connectToMongoDB } from "../../database/connection.js";
@@ -8,15 +9,30 @@ export const action = async ({ request }) => {
   try {
     console.log("📦 App installation webhook received");
 
-    // Authenticate the webhook
-    const { shop, session, admin } = await authenticate.webhook(request);
+    // Explicit HMAC verification for compliance
+    const { payload, shop, topic, hmacVerified } = await authenticateWithHmacVerification(request);
 
-    if (!shop || !session) {
-      console.error("Missing shop or session in webhook");
-      return new Response("Missing shop or session", { status: 400 });
+    if (!hmacVerified) {
+      console.error("❌ HMAC verification failed - rejecting webhook");
+      return new Response("Unauthorized", { status: 401 });
     }
 
-    console.log(`✓ App installed on shop: ${shop}`);
+    if (!shop || !topic) {
+      console.error("❌ Missing shop or topic in webhook");
+      return new Response("Missing shop or topic", { status: 400 });
+    }
+
+    // Verify this is actually an APP_INSTALLED webhook
+    // Shopify sends topics as 'app/installed' but our constant is 'APP_INSTALLED'
+    const expectedTopic = 'APP_INSTALLED';
+    const actualTopic = topic.replace('/', '_').toUpperCase();
+    
+    if (actualTopic !== expectedTopic) {
+      console.error(`❌ Invalid webhook topic: ${topic} (expected: ${expectedTopic}, got: ${actualTopic})`);
+      return new Response("Invalid webhook topic", { status: 400 });
+    }
+
+    console.log(`✓ HMAC-verified app installed on shop: ${shop}`);
 
     // Generate unique job ID
     const jobId = `install-${shop}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
@@ -37,7 +53,7 @@ export const action = async ({ request }) => {
     // Register webhooks automatically after installation
     try {
       console.log(`🔗 Registering webhooks for ${shop}...`);
-      await registerWebhooks(session);
+      await registerWebhooks();
       console.log(`✓ Webhooks registered successfully for ${shop}`);
       console.log(`🎯 Products will now auto-sync to MongoDB when added/updated`);
     } catch (webhookError) {
@@ -49,6 +65,10 @@ export const action = async ({ request }) => {
     try {
       console.log(`🚀 Starting immediate product sync for ${shop}...`);
       await connectToMongoDB();
+      
+      // Use unauthenticated access for initial sync
+      const { unauthenticated } = await import("../shopify.server.js");
+      const admin = await unauthenticated.rest({ shop });
       
       const syncResult = await syncProductsToMongoDB(admin);
       
@@ -86,7 +106,7 @@ export const action = async ({ request }) => {
     return new Response("Installation completed successfully", { status: 200 });
 
   } catch (error) {
-    console.error("Error handling app installation webhook:", error);
+    console.error("❌ Error handling app installation webhook:", error);
     return new Response("Webhook processing failed", { status: 500 });
   }
 };

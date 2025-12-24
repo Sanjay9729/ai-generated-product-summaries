@@ -140,7 +140,7 @@ export default function ProductsPage() {
           </s-box>
         )}
 
-        <s-section heading="Troubleshooting">
+        {/* <s-section heading="Troubleshooting">
           <s-paragraph>
             If new products aren't automatically syncing to MongoDB, try these steps:
           </s-paragraph>
@@ -176,7 +176,7 @@ export default function ProductsPage() {
               Webhooks should automatically handle product sync, but manual sync is available as a fallback.
             </s-text>
           </s-paragraph>
-        </s-section>
+        </s-section> */}
 
         <s-paragraph>
           <s-text variant="bodySm" tone="subdued">
@@ -195,7 +195,7 @@ export default function ProductsPage() {
         </s-unordered-list>
       </s-section>
 
-      <s-section heading="Database Information">
+      {/* <s-section heading="Database Information">
         <s-paragraph>
           <s-text variant="bodySm">
             <strong>Database:</strong> MongoDB (Local)
@@ -217,9 +217,9 @@ export default function ProductsPage() {
           <s-list-item>sync_logs - Sync operation history</s-list-item>
           <s-list-item>installation_jobs - App installation tracking</s-list-item>
         </s-unordered-list>
-      </s-section>
+      </s-section> */}
 
-      <s-section heading="View in MongoDB Compass">
+      {/* <s-section heading="View in MongoDB Compass">
         <s-paragraph>
           Open MongoDB Compass and connect to view your synced products:
         </s-paragraph>
@@ -233,7 +233,7 @@ export default function ProductsPage() {
             mongodb://localhost:27017/shopify_products
           </pre>
         </s-box>
-      </s-section>
+      </s-section> */}
     </s-page>
   );
 }
