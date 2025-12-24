@@ -1,4 +1,4 @@
-import { authenticate, registerWebhooks } from "../shopify.server";
+import { registerWebhooks } from "../shopify.server";
 import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import { createInstallationJob } from "../../database/collections.js";
 import { syncProductsToMongoDB } from "../../backend/services/shopifyProductService.js";

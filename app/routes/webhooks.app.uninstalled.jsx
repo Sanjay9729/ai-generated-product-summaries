@@ -1,4 +1,3 @@
-import { authenticate } from "../shopify.server";
 import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import db from "../db.server";
 
@@ -26,17 +25,10 @@ export const action = async ({ request }) => {
 
     console.log(`Received HMAC-verified ${topic} webhook for ${shop}`);
 
-    // Get session for cleanup
-    const { session } = await authenticate.webhook(request);
-    
     // Webhook requests can trigger multiple times and after an app has already been uninstalled.
     // If this webhook already ran, the session may have been deleted previously.
-    if (session) {
-      await db.session.deleteMany({ where: { shop } });
-      console.log(`✓ Session data deleted for shop: ${shop}`);
-    } else {
-      console.log(`ℹ️ No session found for shop: ${shop} (may have been deleted previously)`);
-    }
+    await db.session.deleteMany({ where: { shop } });
+    console.log(`✓ Session data deleted for shop: ${shop}`);
 
     // Clean up any related data in your database if needed
     try {

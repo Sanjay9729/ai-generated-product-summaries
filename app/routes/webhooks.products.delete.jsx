@@ -1,4 +1,3 @@
-import { authenticate } from "../shopify.server";
 import { authenticateWithHmacVerification } from "../utils/hmacVerification.js";
 import { deleteProduct } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
