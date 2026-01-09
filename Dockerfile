@@ -10,8 +10,6 @@ COPY package.json package-lock.json* ./
 
 RUN npm install --omit=dev && npm cache clean --force
 
-COPY .env .env.local* ./
-
 COPY . .
 
 RUN npx prisma generate
