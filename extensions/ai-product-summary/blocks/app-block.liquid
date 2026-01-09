@@ -16,6 +16,8 @@
     const productId = {{ product.id | json }};
     const blockId = {{ block.id | json }};
     const shopUrl = window.location.hostname;
+    const showTitle = {{ block.settings.show_title | json }};
+    const showDescription = {{ block.settings.show_description | json }};
 
     async function fetchAISummary() {
       try {
@@ -33,16 +35,21 @@
         const container = document.getElementById(`ai-product-summary-${blockId}`);
 
         if (data.productSummary) {
-          container.innerHTML = `
-            <div class="ai-product-summary">
-              ${data.enhancedTitle ? `
-                <h3 class="ai-summary-title">${data.enhancedTitle}</h3>
-              ` : ''}
-              <div class="ai-summary-description">
-                <p>${data.productSummary}</p>
-              </div>
-            </div>
-          `;
+          let htmlContent = '<div class="ai-product-summary">';
+
+          // Add title if enabled
+          if (showTitle && data.enhancedTitle) {
+            htmlContent += '<h3 class="ai-summary-title">' + data.enhancedTitle + '</h3>';
+          }
+
+          // Add description if enabled
+          if (showDescription && data.productSummary) {
+            htmlContent += '<div class="ai-summary-description"><p>' + data.productSummary + '</p></div>';
+          }
+
+          htmlContent += '</div>';
+
+          container.innerHTML = htmlContent;
         } else {
           container.innerHTML = '';
         }
@@ -70,13 +77,13 @@
     {
       "type": "checkbox",
       "id": "show_title",
-      "label": "Show AI Enhanced Title",
+      "label": "Show AI Product Title",
       "default": true
     },
     {
       "type": "checkbox",
-      "id": "show_badge",
-      "label": "Show AI Badge",
+      "id": "show_description",
+      "label": "Show AI Product Description",
       "default": true
     }
   ]
