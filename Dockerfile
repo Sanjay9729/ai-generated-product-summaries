@@ -10,13 +10,14 @@ RUN npm install && npm cache clean --force
 
 COPY . .
 
+# Generate Prisma client
 RUN npx prisma generate
 
-RUN NODE_ENV=production npm run build
+# No build step needed - using SSR (server-side rendering)
 
 RUN npm prune --omit=dev
 
 ENV NODE_ENV=production
 
-# Start the Express server instead of react-router-serve
+# Start the Express server with SSR
 CMD ["node", "server.js"]
