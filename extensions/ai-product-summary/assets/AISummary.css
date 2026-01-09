@@ -47,19 +47,24 @@
   margin: 0;
 }
 
+.ai-badge-wrapper {
+  margin-bottom: 12px;
+}
+
 .ai-summary-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 6px 12px;
-  border-radius: 20px;
+  border-radius: 16px;
   font-size: 12px;
   font-weight: 600;
-  backdrop-filter: blur(10px);
 }
 
 .ai-summary-badge span {
   color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .ai-summary-spinner {

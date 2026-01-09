@@ -1,0 +1,58 @@
+/* Setup Guide Container Styles */
+.setup-guide-wrapper {
+  width: 100%;
+}
+
+/* Step section styles */
+.setup-guide-step-section {
+  display: grid;
+  gap: 24px;
+}
+
+/* Full width for steps without images */
+.setup-guide-step-section.no-image {
+  grid-template-columns: 1fr;
+}
+
+.setup-guide-step-image {
+ flex: 1;
+}
+
+.setup-guide-step-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px solid #000;
+  border-radius: 0;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+  .setup-guide-step-section {
+    grid-template-columns: 1fr !important;
+  }
+
+  .setup-guide-step-image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
+
+  .setup-guide-step-image img {
+    object-fit: contain;
+  }
+}
+
+@media (max-width: 768px) {
+  .setup-guide-step-section {
+    padding: 16px !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .setup-guide-step-section {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+}
