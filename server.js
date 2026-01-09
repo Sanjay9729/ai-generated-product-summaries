@@ -1,9 +1,13 @@
 /* global process */
 import express from 'express';
 import cors from 'cors';
-import { createRequestHandler } from '@react-router/express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getAllProducts, getAllAISummaries } from './database/collections.js';
 import { connectToMongoDB } from './database/connection.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,7 +16,22 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// API Routes
+// Get the build directory path
+const buildDir = path.join(__dirname, 'build/client');
+
+// Helper function to serve the index.html
+function serveIndex(req, res) {
+  res.sendFile(path.join(buildDir, 'index.html'), (err) => {
+    if (err) {
+      res.status(500).send('Build not found. Please run npm run build first.');
+    }
+  });
+}
+
+// Main page route - shows route.jsx content
+app.get('/', serveIndex);
+
+// API products route - returns JSON data
 app.get('/api/products', async (req, res) => {
   try {
     await connectToMongoDB();
@@ -35,6 +54,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+// API ai-summaries route - returns JSON data
 app.get('/api/ai-summaries', async (req, res) => {
   try {
     await connectToMongoDB();
@@ -57,6 +77,7 @@ app.get('/api/ai-summaries', async (req, res) => {
   }
 });
 
+// API health check - returns JSON
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -65,22 +86,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// React Router handler for SSR
-const reactRouterHandler = createRequestHandler({
-  // Import the built routes (if available)
-  // Otherwise, use the routes directory
-  getLoadContext() {
-    return {};
-  }
-});
+// Serve static files from build/client
+app.use(express.static(buildDir));
 
-app.all('/{*splat}', reactRouterHandler);
+// SPA fallback for all other routes
+app.get('/{*splat}', serveIndex);
 
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 API Server running on http://localhost:${PORT}`);
+  console.log(`📋 Main page: http://localhost:${PORT}/`);
   console.log(`📋 Products API: http://localhost:${PORT}/api/products`);
   console.log(`🤖 AI Summaries API: http://localhost:${PORT}/api/ai-summaries`);
   console.log(`❤️  Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🌐 Frontend: http://localhost:${PORT}`);
 });
