@@ -74,7 +74,7 @@ const reactRouterHandler = createRequestHandler({
   }
 });
 
-app.all('*', reactRouterHandler);
+app.all('/{*splat}', reactRouterHandler);
 
 // Start server
 app.listen(PORT, () => {
