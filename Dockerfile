@@ -1,5 +1,5 @@
 FROM node:20-alpine
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl python3 make g++ libc6-compat
 
 EXPOSE 3000
 
