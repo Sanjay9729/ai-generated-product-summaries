@@ -4,8 +4,8 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { getLatestInstallationJob, createInstallationJob } from "../../database/collections.js";
-import step2mage from "../images/AI Product Summary Block.png";
-import step3mage from "../images/Configure Block Settings.png";
+import step2mage from "../images/step2-add-block.png";
+import step3mage from "../images/step3-configure.png";
 import crypto from "crypto";
 import "../styles/setupGuide.css";
 
