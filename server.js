@@ -90,8 +90,8 @@ app.get('/api/health', (req, res) => {
 const buildPath = path.join(__dirname, 'build/client');
 app.use(express.static(buildPath));
 
-// Handle React Router routes
-app.get('*', (req, res) => {
+// Handle all other routes (SPA mode) - Express 5 compatible
+app.get('/{*splat}', (req, res) => {
   // If it's an API request that wasn't handled, return 404
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
@@ -102,7 +102,6 @@ app.get('*', (req, res) => {
   }
   
   // Serve index.html for all other routes (React Router SPA mode)
-  // Only if build exists
   const indexPath = path.join(buildPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
