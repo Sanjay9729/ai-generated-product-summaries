@@ -18,4 +18,5 @@ RUN npm prune --omit=dev
 
 ENV NODE_ENV=production
 
-CMD ["npm", "run", "start"]
+# Start the Express server instead of react-router-serve
+CMD ["node", "server.js"]
