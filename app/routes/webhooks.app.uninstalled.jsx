@@ -1,5 +1,4 @@
-import { authenticate } from "../shopify.server";
-import db from "../db.server";
+import { authenticate, sessionStorage } from "../shopify.server";
 
 export const action = async ({ request }) => {
   try {
@@ -12,8 +11,15 @@ export const action = async ({ request }) => {
 
     // Webhook requests can trigger multiple times and after an app has already been uninstalled.
     // If this webhook already ran, the session may have been deleted previously.
-    await db.session.deleteMany({ where: { shop } });
-    console.log(`✓ Session data deleted for shop: ${shop}`);
+    try {
+      const sessions = await sessionStorage.findSessionsByShop(shop);
+      for (const existingSession of sessions) {
+        await sessionStorage.deleteSession(existingSession.id);
+      }
+      console.log(`✓ Session data deleted for shop: ${shop}`);
+    } catch (deleteError) {
+      console.error(`Warning: Failed to delete sessions for ${shop}:`, deleteError);
+    }
 
     // Clean up any related data in your database if needed
     try {

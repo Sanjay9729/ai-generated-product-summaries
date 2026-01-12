@@ -1,5 +1,4 @@
-import { authenticate } from "../shopify.server";
-import db from "../db.server";
+import { authenticate, sessionStorage } from "../shopify.server";
 
 export const action = async ({ request }) => {
   try {
@@ -25,14 +24,12 @@ export const action = async ({ request }) => {
 
     // Update the session with new scopes if session exists
     try {
-      await db.session.updateMany({
-        where: {
-          shop: shop,
-        },
-        data: {
-          scope: current.toString(),
-        },
-      });
+      // Find and update all sessions for this shop
+      const sessions = await sessionStorage.findSessionsByShop(shop);
+      for (const existingSession of sessions) {
+        existingSession.scope = current.toString();
+        await sessionStorage.storeSession(existingSession);
+      }
       console.log(`✓ Session scopes updated for shop: ${shop}`);
     } catch (updateError) {
       console.error(`❌ Failed to update session scopes for ${shop}:`, updateError);
