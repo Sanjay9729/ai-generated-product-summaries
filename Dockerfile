@@ -13,7 +13,8 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
-# No build step needed - using SSR (server-side rendering)
+# Build the React Router app
+RUN npm run build
 
 RUN npm prune --omit=dev
 
