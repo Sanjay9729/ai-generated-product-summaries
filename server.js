@@ -1,38 +1,44 @@
 /* global process */
+import { createRequestHandler } from '@react-router/express';
+import compression from 'compression';
 import express from 'express';
-import cors from 'cors';
+import morgan from 'morgan';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { getAllProducts, getAllAISummaries } from './database/collections.js';
 import { connectToMongoDB } from './database/connection.js';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Set NODE_ENV to production if not set
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Get the build directory path
-const buildDir = path.join(__dirname, 'build/client');
-
-// Helper function to serve the index.html
-function serveIndex(req, res) {
-  res.sendFile(path.join(buildDir, 'index.html'), (err) => {
-    if (err) {
-      res.status(500).send('Build not found. Please run npm run build first.');
-    }
-  });
+// Set SHOPIFY_APP_URL if not set (required by Shopify SDK)
+if (!process.env.SHOPIFY_APP_URL) {
+  process.env.SHOPIFY_APP_URL = `http://localhost:${process.env.PORT || 3000}`;
 }
 
-// Main page route - shows route.jsx content
-app.get('/', serveIndex);
+const PORT = process.env.PORT || 3000;
 
-// API products route - returns JSON data
-app.get('/api/products', async (req, res) => {
+// Import the React Router server build
+const BUILD_PATH = path.resolve(__dirname, 'build', 'server', 'index.js');
+const build = await import(pathToFileURL(BUILD_PATH).href);
+
+const app = express();
+
+// Middleware
+app.use(compression());
+app.disable('x-powered-by');
+app.use(morgan('tiny'));
+app.use(express.json());
+
+// Custom API routes MUST come before the React Router handler
+app.get('/api/products', async (_req, res) => {
   try {
     await connectToMongoDB();
     const products = await getAllProducts();
@@ -54,8 +60,7 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// API ai-summaries route - returns JSON data
-app.get('/api/ai-summaries', async (req, res) => {
+app.get('/api/ai-summaries', async (_req, res) => {
   try {
     await connectToMongoDB();
     const aiSummaries = await getAllAISummaries();
@@ -77,8 +82,7 @@ app.get('/api/ai-summaries', async (req, res) => {
   }
 });
 
-// API health check - returns JSON
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
@@ -86,11 +90,35 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve static files from build/client
-app.use(express.static(buildDir));
+// Serve static assets
+const CLIENT_BUILD_DIR = path.join(__dirname, 'build', 'client');
+app.use(
+  express.static(CLIENT_BUILD_DIR, {
+    maxAge: '1h',
+    setHeaders(res, resourcePath) {
+      if (resourcePath.endsWith('.js') || resourcePath.endsWith('.css')) {
+        res.setHeader('Cache-Control', 'public,max-age=31536000,immutable');
+      }
+    },
+  })
+);
 
-// SPA fallback for all other routes
-app.get('/{*splat}', serveIndex);
+// React Router request handler for all other routes
+const handler = createRequestHandler({ build });
+console.log('Handler type:', typeof handler);
+console.log('Handler function length:', handler.length);
+
+// Add debug middleware
+app.use((req, _res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.url}`);
+  next();
+});
+
+// Wrap handler to see if it's being called
+app.use((req, res, next) => {
+  console.log('[DEBUG] Calling React Router handler for:', req.url);
+  handler(req, res, next);
+});
 
 // Start server
 app.listen(PORT, () => {
