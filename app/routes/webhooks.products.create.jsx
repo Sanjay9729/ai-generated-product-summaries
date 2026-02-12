@@ -88,14 +88,14 @@ export const action = async ({ request }) => {
     };
 
     console.log("💾 Saving product to MongoDB...");
-    await updateProduct(productData.shopify_product_id, productData);
+    await updateProduct(productData.shopify_product_id, productData, shop);
     console.log(`✅ Product "${product.title}" saved to MongoDB successfully`);
 
     // Auto-generate AI summary
     if (product.title && productData.description) {
       try {
         console.log(`🤖 Generating AI summary for: ${product.title}`);
-        
+
         const aiSummary = await generateProductSummary(
           product.title,
           productData.description
@@ -109,7 +109,7 @@ export const action = async ({ request }) => {
           enhanced_title: aiSummary.enhancedTitle,
           enhanced_description: aiSummary.enhancedDescription,
           created_at: new Date(),
-        });
+        }, shop);
 
         console.log(`✅ AI summary generated for: ${product.title}`);
       } catch (aiError) {
@@ -122,7 +122,7 @@ export const action = async ({ request }) => {
 
     console.log(`🎉 PRODUCTS_CREATE webhook completed successfully for ${shop}`);
     return new Response("OK", { status: 200 });
-    
+
   } catch (error) {
     console.error("❌ Error processing PRODUCTS_CREATE webhook:", error);
     console.error("Error stack:", error.stack);

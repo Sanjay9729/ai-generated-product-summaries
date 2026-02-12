@@ -3,11 +3,14 @@ import { connectToMongoDB } from "../../database/connection.js";
 
 export const loader = async ({ request }) => {
   try {
+    const url = new URL(request.url);
+    const shop = url.searchParams.get("shop");
+
     // Connect to MongoDB
     await connectToMongoDB();
 
-    // Fetch all products
-    const products = await getAllProducts();
+    // Fetch products scoped to shop
+    const products = await getAllProducts(shop);
 
     // Return JSON response
     return new Response(

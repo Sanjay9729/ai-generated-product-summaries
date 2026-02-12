@@ -3,13 +3,14 @@ import { syncProductsToMongoDB } from "../../backend/services/shopifyProductServ
 import { connectToMongoDB } from "../../database/connection.js";
 
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   try {
-    console.log("🔄 Manual product sync triggered via API...");
+    console.log(`🔄 Manual product sync triggered via API for ${shop}...`);
     await connectToMongoDB();
 
-    const result = await syncProductsToMongoDB(admin);
+    const result = await syncProductsToMongoDB(admin, shop);
 
     console.log(`✅ Manual sync completed: ${result.products_count} products synced`);
 

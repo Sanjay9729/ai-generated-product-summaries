@@ -88,12 +88,12 @@ export const action = async ({ request }) => {
     };
 
     console.log("💾 Updating product in MongoDB...");
-    await updateProduct(productData.shopify_product_id, productData);
+    await updateProduct(productData.shopify_product_id, productData, shop);
     console.log(`✅ Product "${product.title}" updated in MongoDB via HMAC-verified webhook`);
 
     // Auto-generate AI summary if it doesn't exist
     try {
-      const existingSummary = await getAISummary(productData.shopify_product_id);
+      const existingSummary = await getAISummary(productData.shopify_product_id, shop);
 
       if (!existingSummary && product.title && productData.description) {
         console.log(`🤖 Auto-generating AI summary for updated product: ${product.title}`);
@@ -111,7 +111,7 @@ export const action = async ({ request }) => {
           enhanced_title: aiSummary.enhancedTitle,
           enhanced_description: aiSummary.enhancedDescription,
           created_at: new Date(),
-        });
+        }, shop);
 
         console.log(`✅ AI summary auto-generated for: ${product.title}`);
       } else if (existingSummary) {
