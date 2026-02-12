@@ -6,9 +6,10 @@ export const loader = async ({ request }) => {
     // Connect to MongoDB
     await connectToMongoDB();
 
-    // Extract product ID from URL parameters or search params
+    // Extract product ID and shop from URL parameters or search params
     const url = new URL(request.url);
     const productId = url.searchParams.get("id") || url.pathname.split("/").pop();
+    const shop = url.searchParams.get("shop");
 
     if (!productId) {
       return new Response(
@@ -28,8 +29,8 @@ export const loader = async ({ request }) => {
       );
     }
 
-    // Fetch single product by ID
-    const product = await getProductById(productId);
+    // Fetch single product by ID scoped to shop
+    const product = await getProductById(productId, shop);
 
     if (!product) {
       return new Response(

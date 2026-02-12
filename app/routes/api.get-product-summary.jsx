@@ -5,6 +5,7 @@ export const loader = async ({ request }) => {
   // Enable CORS for storefront requests
   const url = new URL(request.url);
   const productId = url.searchParams.get("id");
+  const shop = url.searchParams.get("shop");
 
   if (!productId) {
     return new Response(
@@ -20,8 +21,8 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    // Fetch AI summary from MongoDB
-    const aiSummary = await getAISummary(productId);
+    // Fetch AI summary from MongoDB scoped to shop
+    const aiSummary = await getAISummary(productId, shop);
 
     if (!aiSummary) {
       return new Response(

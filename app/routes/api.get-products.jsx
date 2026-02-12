@@ -3,12 +3,13 @@ import { getAllProducts } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   try {
     await connectToMongoDB();
 
-    const products = await getAllProducts();
+    const products = await getAllProducts(shop);
 
     return {
       success: true,

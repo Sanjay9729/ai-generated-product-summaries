@@ -38,10 +38,11 @@ app.use(morgan('tiny'));
 app.use(express.json());
 
 // Custom API routes MUST come before the React Router handler
-app.get('/api/products', async (_req, res) => {
+app.get('/api/products', async (req, res) => {
   try {
+    const shop = req.query.shop;
     await connectToMongoDB();
-    const products = await getAllProducts();
+    const products = await getAllProducts(shop);
     res.json({
       success: true,
       count: products.length,
@@ -60,10 +61,11 @@ app.get('/api/products', async (_req, res) => {
   }
 });
 
-app.get('/api/ai-summaries', async (_req, res) => {
+app.get('/api/ai-summaries', async (req, res) => {
   try {
+    const shop = req.query.shop;
     await connectToMongoDB();
-    const aiSummaries = await getAllAISummaries();
+    const aiSummaries = await getAllAISummaries(shop);
     res.json({
       success: true,
       count: aiSummaries.length,
