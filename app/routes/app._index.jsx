@@ -70,7 +70,7 @@ export const loader = async ({ request }) => {
       (async () => {
         try {
           await connectToMongoDB();
-          const syncResult = await syncProductsToMongoDB(admin);
+          const syncResult = await syncProductsToMongoDB(admin, session.shop);
 
           await createInstallationJob({
             job_id: jobId,

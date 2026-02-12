@@ -43,7 +43,7 @@ export const action = async ({ request }) => {
     }
 
     console.log(`🗑️ Deleting product from MongoDB: ${shopifyProductId}`);
-    await deleteProduct(shopifyProductId);
+    await deleteProduct(shopifyProductId, shop);
     console.log(`✅ Product "${product.title || 'Unknown'}" (ID: ${product.id}) deleted from MongoDB via HMAC-verified webhook`);
 
     console.log(`🎉 PRODUCTS_DELETE webhook completed successfully for ${shop}`);

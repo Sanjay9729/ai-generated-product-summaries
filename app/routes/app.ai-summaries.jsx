@@ -4,8 +4,9 @@ import { getAllProducts, getAllAISummaries } from "../../database/collections.js
 import { connectToMongoDB } from "../../database/connection.js";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-  
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
+
   const url = new URL(request.url);
   const clearCache = url.searchParams.get('clear-cache') === 'true' || url.searchParams.get('force-regenerate') === 'true';
   const timestamp = Date.now(); // Cache busting
@@ -18,8 +19,8 @@ export const loader = async ({ request }) => {
   try {
     await connectToMongoDB();
 
-    const products = await getAllProducts();
-    let aiSummaries = await getAllAISummaries();
+    const products = await getAllProducts(shop);
+    let aiSummaries = await getAllAISummaries(shop);
     
     // Handle cache clearing for regeneration
     const { generateProductSummary } = await import("../../backend/services/groqAIService.js");
@@ -31,7 +32,7 @@ export const loader = async ({ request }) => {
     if (clearCache) {
       console.log('=== CACHE CLEARING ACTIVATED ===');
       console.log('Clearing all AI summaries for regeneration...');
-      const deleteResult = await deleteAllAISummaries();
+      const deleteResult = await deleteAllAISummaries(shop);
       console.log('Delete result:', deleteResult);
       aiSummaries = []; // Reset to empty after deletion
       summaryMap = {}; // Reset map after deletion
@@ -84,7 +85,7 @@ export const loader = async ({ request }) => {
             enhanced_title: aiSummary.enhancedTitle,
             enhanced_description: aiSummary.enhancedDescription,
             created_at: new Date(),
-          });
+          }, shop);
 
           console.log(`✓ AI summary auto-generated for: ${product.title}`);
           
@@ -98,7 +99,7 @@ export const loader = async ({ request }) => {
       }
       
       // Refresh summaries after generation
-      const updatedSummaries = await getAllAISummaries();
+      const updatedSummaries = await getAllAISummaries(shop);
       const updatedSummaryMap = {};
       updatedSummaries.forEach(summary => {
         updatedSummaryMap[summary.shopify_product_id] = summary;
