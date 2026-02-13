@@ -35,7 +35,13 @@ const app = express();
 app.use(compression());
 app.disable('x-powered-by');
 app.use(morgan('tiny'));
-app.use(express.json());
+// Skip JSON body parsing for webhook routes — Shopify needs raw body for HMAC verification
+app.use((req, res, next) => {
+  if (req.path.startsWith('/webhooks')) {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 
 // Custom API routes MUST come before the React Router handler
 app.get('/api/products', async (req, res) => {

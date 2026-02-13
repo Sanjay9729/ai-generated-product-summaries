@@ -8,10 +8,13 @@ export async function generateProductSummary(productTitle, productDescription) {
   try {
     console.log(`Generating AI summary for: ${productTitle}`);
 
-    const prompt = `You are a product summarizer. Create a concise, engaging 2-sentence product summary.
+    const hasDescription = !!productDescription;
+
+    const prompt = hasDescription
+      ? `You are a product summarizer. Create a concise, engaging 2-sentence product summary.
 
 Product: ${productTitle}
-Details: ${productDescription || 'Basic product'}
+Details: ${productDescription}
 
 Requirements:
 - Write EXACTLY 2 sentences (not 2 lines)
@@ -28,6 +31,20 @@ Return ONLY JSON:
 {
   "enhancedTitle": "Create a compelling, unique title (NOT the same as original)",
   "enhancedDescription": "Your 2-sentence summary here (25-35 words)"
+}`
+      : `You are a product title enhancer. Create a more compelling, unique product title.
+
+Product: ${productTitle}
+
+Requirements:
+- Make the title more compelling, unique, and marketable
+- Keep it concise (3-8 words)
+- Do NOT invent a description — only enhance the title
+
+Return ONLY JSON:
+{
+  "enhancedTitle": "Your improved title here",
+  "enhancedDescription": ""
 }`;
 
     const chatCompletion = await groq.chat.completions.create({
@@ -55,9 +72,9 @@ Return ONLY JSON:
 
     return {
       enhancedTitle: parsedResponse.enhancedTitle || productTitle,
-      enhancedDescription: parsedResponse.enhancedDescription || productDescription,
+      enhancedDescription: hasDescription ? (parsedResponse.enhancedDescription || productDescription) : '',
       originalTitle: productTitle,
-      originalDescription: productDescription,
+      originalDescription: productDescription || '',
     };
   } catch (error) {
     console.error('Error generating product summary with Groq AI:', error);
