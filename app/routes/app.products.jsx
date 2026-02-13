@@ -106,8 +106,6 @@ export default function ProductsPage() {
         {syncStatus && (
           <s-box
             padding="base"
-            borderWidth="base"
-            borderRadius="base"
             background={syncStatus.success ? "success-subdued" : "critical-subdued"}
           >
             <s-stack direction="block" gap="tight">
@@ -126,8 +124,6 @@ export default function ProductsPage() {
         {syncResult && (
           <s-box
             padding="base"
-            borderWidth="base"
-            borderRadius="base"
             background={syncResult.success ? "success-subdued" : "critical-subdued"}
           >
             <s-stack direction="block" gap="tight">

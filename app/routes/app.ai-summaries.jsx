@@ -273,40 +273,32 @@ export default function AISummariesPage() {
                     )}
 
                     {hasSummary && (
-                      <>
+                      <s-stack direction="block" gap="base">
                         <s-box
                           padding="tight"
-                          borderWidth="base"
-                          borderRadius="base"
                           background="success-subdued"
                         >
                           <s-text variant="bodySm">
-                            <strong>AI Title:</strong>
-                          </s-text>
-                          <s-text variant="bodySm">
-                            {hasSummary.enhanced_title}
+                            <strong>AI Title:</strong> {hasSummary.enhanced_title}
                           </s-text>
                         </s-box>
 
-                        <s-box
-                          padding="tight"
-                          borderWidth="base"
-                          borderRadius="base"
-                          background="success-subdued"
-                        >
-                          <s-text variant="bodySm">
-                            <strong>AI Description:</strong>
-                          </s-text>
-                          <s-text variant="bodySm">
-                            {hasSummary.enhanced_description.substring(0, 300)}
-                            {hasSummary.enhanced_description.length > 300 ? "..." : ""}
-                          </s-text>
-                        </s-box>
+                        {hasSummary.enhanced_description && (
+                          <s-box
+                            padding="tight"
+                            background="success-subdued"
+                          >
+                            <s-text variant="bodySm">
+                              <strong>AI Description:</strong> {hasSummary.enhanced_description.substring(0, 300)}
+                              {hasSummary.enhanced_description.length > 300 ? "..." : ""}
+                            </s-text>
+                          </s-box>
+                        )}
 
                         <s-text variant="bodySm" tone="subdued">
                           Generated: {new Date(hasSummary.created_at).toLocaleString()}
                         </s-text>
-                      </>
+                      </s-stack>
                     )}
 
                     {!hasSummary && (
