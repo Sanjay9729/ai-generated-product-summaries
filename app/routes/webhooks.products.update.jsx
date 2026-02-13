@@ -91,12 +91,17 @@ export const action = async ({ request }) => {
     await updateProduct(productData.shopify_product_id, productData, shop);
     console.log(`✅ Product "${product.title}" updated in MongoDB via HMAC-verified webhook`);
 
-    // Auto-generate AI summary if it doesn't exist
+    // Auto-generate or regenerate AI summary when title or description changes
     try {
       const existingSummary = await getAISummary(productData.shopify_product_id, shop);
 
-      if (!existingSummary && product.title) {
-        console.log(`🤖 Auto-generating AI summary for updated product: ${product.title}`);
+      const titleChanged = existingSummary && existingSummary.original_title !== product.title;
+      const descriptionChanged = existingSummary && (existingSummary.original_description || '') !== productData.description;
+      const needsRegeneration = !existingSummary || titleChanged || descriptionChanged;
+
+      if (needsRegeneration && product.title) {
+        const reason = !existingSummary ? 'no existing summary' : titleChanged ? 'title changed' : 'description changed';
+        console.log(`🤖 Generating AI summary for: ${product.title} (${reason})`);
 
         const aiSummary = await generateProductSummary(
           product.title,
@@ -110,17 +115,17 @@ export const action = async ({ request }) => {
           original_description: aiSummary.originalDescription,
           enhanced_title: aiSummary.enhancedTitle,
           enhanced_description: aiSummary.enhancedDescription,
-          created_at: new Date(),
+          created_at: existingSummary?.created_at || new Date(),
         }, shop);
 
-        console.log(`✅ AI summary auto-generated for: ${product.title}`);
-      } else if (existingSummary) {
-        console.log(`⏭️ AI summary already exists for: ${product.title}`);
-      } else {
+        console.log(`✅ AI summary generated for: ${product.title}`);
+      } else if (!product.title) {
         console.log(`⏭️ Skipping AI summary generation - missing title`);
+      } else {
+        console.log(`⏭️ AI summary unchanged for: ${product.title}`);
       }
     } catch (aiError) {
-      console.error(`⚠️ Failed to auto-generate AI summary:`, aiError.message);
+      console.error(`⚠️ Failed to generate AI summary:`, aiError.message);
       // Don't fail the webhook if AI generation fails
     }
 
