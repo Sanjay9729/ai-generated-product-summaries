@@ -34,7 +34,7 @@
 
         const container = document.getElementById(`ai-product-summary-${blockId}`);
 
-        if (data.productSummary) {
+        if (data.productSummary || data.enhancedTitle) {
           let htmlContent = '<div class="ai-product-summary">';
 
           // Add title if enabled
