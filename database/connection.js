@@ -2,6 +2,7 @@ import { MongoClient } from 'mongodb';
 
 let client = null;
 let db = null;
+let indexesEnsured = false;
 
 export async function connectToMongoDB() {
   if (db) {
@@ -17,6 +18,14 @@ export async function connectToMongoDB() {
     console.log('✓ Connected to MongoDB successfully');
 
     db = client.db();
+
+    // Run index setup and migration once per server lifetime
+    if (!indexesEnsured) {
+      indexesEnsured = true;
+      const { ensureIndexes } = await import('./collections.js');
+      await ensureIndexes().catch(err => console.error('Index setup warning:', err.message));
+    }
+
     return db;
   } catch (error) {
     console.error('✗ MongoDB connection error:', error);

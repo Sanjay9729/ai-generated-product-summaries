@@ -24,8 +24,8 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    // Fetch AI summary from MongoDB
-    const aiSummary = await getAISummary(productId);
+    // Fetch AI summary from MongoDB scoped to the requesting shop
+    const aiSummary = await getAISummary(productId, shop);
 
     if (!aiSummary) {
       return new Response(

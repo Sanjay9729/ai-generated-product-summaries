@@ -126,14 +126,14 @@ export async function fetchAllShopifyProducts(admin) {
   }
 }
 
-export async function syncProductsToMongoDB(admin) {
+export async function syncProductsToMongoDB(admin, shop) {
   const startTime = new Date();
   let syncStatus = 'success';
   let errorMessage = null;
   let productsCount = 0;
 
   try {
-    console.log('Starting product sync to MongoDB...');
+    console.log(`Starting product sync to MongoDB for shop: ${shop}...`);
 
     const shopifyProducts = await fetchAllShopifyProducts(admin);
     productsCount = shopifyProducts.length;
@@ -178,13 +178,13 @@ export async function syncProductsToMongoDB(admin) {
         synced_at: new Date(),
       };
 
-      await updateProduct(product.id, productData);
+      await updateProduct(product.id, productData, shop);
 
       // Auto-generate AI summary if it doesn't exist
       try {
-        const existingSummary = await getAISummary(product.id);
+        const existingSummary = await getAISummary(product.id, shop);
 
-        if (!existingSummary && product.title && product.description) {
+        if (!existingSummary && product.title) {
           console.log(`Generating AI summary for: ${product.title}`);
 
           const aiSummary = await generateProductSummary(
@@ -200,7 +200,7 @@ export async function syncProductsToMongoDB(admin) {
             enhanced_title: aiSummary.enhancedTitle,
             enhanced_description: aiSummary.enhancedDescription,
             created_at: new Date(),
-          });
+          }, shop);
 
           console.log(`✓ AI summary generated for: ${product.title}`);
 
@@ -213,7 +213,7 @@ export async function syncProductsToMongoDB(admin) {
       }
     }
 
-    console.log(`✓ Successfully synced ${productsCount} products to MongoDB`);
+    console.log(`✓ Successfully synced ${productsCount} products to MongoDB for ${shop}`);
   } catch (error) {
     console.error('Error syncing products to MongoDB:', error);
     syncStatus = 'failed';
@@ -224,6 +224,7 @@ export async function syncProductsToMongoDB(admin) {
     const duration = endTime - startTime;
 
     await logSync({
+      shop,
       status: syncStatus,
       products_count: productsCount,
       duration_ms: duration,

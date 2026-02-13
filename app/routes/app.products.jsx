@@ -5,14 +5,15 @@ import { getAllProducts, getAllAISummaries } from "../../database/collections.js
 import { connectToMongoDB } from "../../database/connection.js";
 
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   try {
     await connectToMongoDB();
 
     // Just fetch existing data, no automatic sync needed
-    const products = await getAllProducts();
-    const aiSummaries = await getAllAISummaries();
+    const products = await getAllProducts(shop);
+    const aiSummaries = await getAllAISummaries(shop);
 
     return {
       syncStatus: {

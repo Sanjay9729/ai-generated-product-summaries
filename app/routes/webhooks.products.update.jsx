@@ -88,14 +88,14 @@ export const action = async ({ request }) => {
     };
 
     console.log("💾 Updating product in MongoDB...");
-    await updateProduct(productData.shopify_product_id, productData);
+    await updateProduct(productData.shopify_product_id, productData, shop);
     console.log(`✅ Product "${product.title}" updated in MongoDB via HMAC-verified webhook`);
 
     // Auto-generate AI summary if it doesn't exist
     try {
-      const existingSummary = await getAISummary(productData.shopify_product_id);
+      const existingSummary = await getAISummary(productData.shopify_product_id, shop);
 
-      if (!existingSummary && product.title && productData.description) {
+      if (!existingSummary && product.title) {
         console.log(`🤖 Auto-generating AI summary for updated product: ${product.title}`);
 
         const aiSummary = await generateProductSummary(
@@ -111,13 +111,13 @@ export const action = async ({ request }) => {
           enhanced_title: aiSummary.enhancedTitle,
           enhanced_description: aiSummary.enhancedDescription,
           created_at: new Date(),
-        });
+        }, shop);
 
         console.log(`✅ AI summary auto-generated for: ${product.title}`);
       } else if (existingSummary) {
         console.log(`⏭️ AI summary already exists for: ${product.title}`);
       } else {
-        console.log(`⏭️ Skipping AI summary generation - missing title or description`);
+        console.log(`⏭️ Skipping AI summary generation - missing title`);
       }
     } catch (aiError) {
       console.error(`⚠️ Failed to auto-generate AI summary:`, aiError.message);

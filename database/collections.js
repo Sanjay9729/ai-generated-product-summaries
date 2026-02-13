@@ -7,6 +7,42 @@ export const COLLECTIONS = {
   INSTALLATION_JOBS: 'installation_jobs',
 };
 
+// Ensure indexes for multi-tenant shop scoping
+export async function ensureIndexes() {
+  const db = await getDatabase();
+
+  // Compound indexes for shop-scoped queries
+  await db.collection(COLLECTIONS.PRODUCTS).createIndex(
+    { shop: 1, shopify_product_id: 1 },
+    { unique: true }
+  );
+  await db.collection(COLLECTIONS.AI_SUMMARIES).createIndex(
+    { shop: 1, shopify_product_id: 1 },
+    { unique: true }
+  );
+  await db.collection(COLLECTIONS.SYNC_LOGS).createIndex({ shop: 1, timestamp: -1 });
+  await db.collection(COLLECTIONS.INSTALLATION_JOBS).createIndex({ shop_url: 1, created_at: -1 });
+
+  // Migrate existing documents that lack a shop field
+  const defaultShop = process.env.SHOP_CUSTOM_DOMAIN;
+  if (defaultShop) {
+    await db.collection(COLLECTIONS.PRODUCTS).updateMany(
+      { shop: { $exists: false } },
+      { $set: { shop: defaultShop } }
+    );
+    await db.collection(COLLECTIONS.AI_SUMMARIES).updateMany(
+      { shop: { $exists: false } },
+      { $set: { shop: defaultShop } }
+    );
+    await db.collection(COLLECTIONS.SYNC_LOGS).updateMany(
+      { shop: { $exists: false } },
+      { $set: { shop: defaultShop } }
+    );
+  }
+
+  console.log('✅ MongoDB indexes ensured and migration complete');
+}
+
 export async function getProductsCollection() {
   const db = await getDatabase();
   return db.collection(COLLECTIONS.PRODUCTS);
@@ -23,31 +59,34 @@ export async function insertProduct(productData) {
   return result;
 }
 
-export async function updateProduct(shopifyProductId, productData) {
+export async function updateProduct(shopifyProductId, productData, shop) {
   const collection = await getProductsCollection();
   const result = await collection.updateOne(
-    { shopify_product_id: shopifyProductId },
-    { $set: productData },
+    { shopify_product_id: shopifyProductId, shop },
+    { $set: { ...productData, shop } },
     { upsert: true }
   );
   return result;
 }
 
-export async function getAllProducts() {
+export async function getAllProducts(shop) {
   const collection = await getProductsCollection();
-  const products = await collection.find({}).toArray();
+  const products = await collection.find({ shop }).toArray();
   return products;
 }
 
-export async function getProductById(shopifyProductId) {
+export async function getProductById(shopifyProductId, shop) {
   const collection = await getProductsCollection();
-  const product = await collection.findOne({ shopify_product_id: shopifyProductId });
+  const filter = shop
+    ? { shopify_product_id: shopifyProductId, shop }
+    : { shopify_product_id: shopifyProductId };
+  const product = await collection.findOne(filter);
   return product;
 }
 
-export async function deleteProduct(shopifyProductId) {
+export async function deleteProduct(shopifyProductId, shop) {
   const collection = await getProductsCollection();
-  const result = await collection.deleteOne({ shopify_product_id: shopifyProductId });
+  const result = await collection.deleteOne({ shopify_product_id: shopifyProductId, shop });
   return result;
 }
 
@@ -65,13 +104,14 @@ export async function getAISummariesCollection() {
   return db.collection(COLLECTIONS.AI_SUMMARIES);
 }
 
-export async function saveAISummary(shopifyProductId, summaryData) {
+export async function saveAISummary(shopifyProductId, summaryData, shop) {
   const collection = await getAISummariesCollection();
   const result = await collection.updateOne(
-    { shopify_product_id: shopifyProductId },
+    { shopify_product_id: shopifyProductId, shop },
     {
       $set: {
         ...summaryData,
+        shop,
         updated_at: new Date(),
       },
     },
@@ -80,21 +120,24 @@ export async function saveAISummary(shopifyProductId, summaryData) {
   return result;
 }
 
-export async function getAISummary(shopifyProductId) {
+export async function getAISummary(shopifyProductId, shop) {
   const collection = await getAISummariesCollection();
-  const summary = await collection.findOne({ shopify_product_id: shopifyProductId });
+  const filter = shop
+    ? { shopify_product_id: shopifyProductId, shop }
+    : { shopify_product_id: shopifyProductId };
+  const summary = await collection.findOne(filter);
   return summary;
 }
 
-export async function getAllAISummaries() {
+export async function getAllAISummaries(shop) {
   const collection = await getAISummariesCollection();
-  const summaries = await collection.find({}).toArray();
+  const summaries = await collection.find({ shop }).toArray();
   return summaries;
 }
 
-export async function deleteAllAISummaries() {
+export async function deleteAllAISummaries(shop) {
   const collection = await getAISummariesCollection();
-  const result = await collection.deleteMany({});
+  const result = await collection.deleteMany({ shop });
   return result;
 }
 

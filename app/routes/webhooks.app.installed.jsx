@@ -47,9 +47,9 @@ export const action = async ({ request }) => {
       
       // Use unauthenticated access for initial sync
       const { unauthenticated } = await import("../shopify.server.js");
-      const admin = await unauthenticated.rest({ shop });
+      const adminClient = await unauthenticated.rest({ shop });
       
-      const syncResult = await syncProductsToMongoDB(admin);
+      const syncResult = await syncProductsToMongoDB(adminClient, shop);
       
       console.log(`✓ Installation sync completed: ${syncResult.products_count} products synced`);
       

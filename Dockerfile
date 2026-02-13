@@ -1,18 +1,21 @@
-FROM node:20-alpine
-RUN apk add --no-cache openssl
+FROM node:20
 
 EXPOSE 3000
 
 WORKDIR /app
 
-ENV NODE_ENV=production
-
 COPY package.json package-lock.json* ./
 
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 COPY . .
 
+# Build the React Router app
 RUN npm run build
 
-CMD ["npm", "run", "docker-start"]
+RUN npm prune --omit=dev
+
+ENV NODE_ENV=production
+
+# Start the server
+CMD ["node", "server.js"]
