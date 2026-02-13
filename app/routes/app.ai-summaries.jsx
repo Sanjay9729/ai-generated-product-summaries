@@ -46,14 +46,14 @@ export const loader = async ({ request }) => {
     });
     
     let productsWithoutSummaries = products.filter(
-      product => !summaryMap[product.shopify_product_id] && product.title && product.description
+      product => !summaryMap[product.shopify_product_id] && product.title
     );
     
     // Always regenerate all summaries when cache is cleared (model update)
     if (clearCache) {
       console.log('Force regenerating ALL AI summaries due to cache clear...');
       console.log('Products found:', products.length);
-      productsWithoutSummaries = products.filter(p => p.title && p.description);
+      productsWithoutSummaries = products.filter(p => p.title);
       console.log('Products to regenerate:', productsWithoutSummaries.length);
     }
 

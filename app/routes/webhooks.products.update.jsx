@@ -95,7 +95,7 @@ export const action = async ({ request }) => {
     try {
       const existingSummary = await getAISummary(productData.shopify_product_id, shop);
 
-      if (!existingSummary && product.title && productData.description) {
+      if (!existingSummary && product.title) {
         console.log(`🤖 Auto-generating AI summary for updated product: ${product.title}`);
 
         const aiSummary = await generateProductSummary(
@@ -117,7 +117,7 @@ export const action = async ({ request }) => {
       } else if (existingSummary) {
         console.log(`⏭️ AI summary already exists for: ${product.title}`);
       } else {
-        console.log(`⏭️ Skipping AI summary generation - missing title or description`);
+        console.log(`⏭️ Skipping AI summary generation - missing title`);
       }
     } catch (aiError) {
       console.error(`⚠️ Failed to auto-generate AI summary:`, aiError.message);

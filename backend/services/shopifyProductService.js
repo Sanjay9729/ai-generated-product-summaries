@@ -184,7 +184,7 @@ export async function syncProductsToMongoDB(admin, shop) {
       try {
         const existingSummary = await getAISummary(product.id, shop);
 
-        if (!existingSummary && product.title && product.description) {
+        if (!existingSummary && product.title) {
           console.log(`Generating AI summary for: ${product.title}`);
 
           const aiSummary = await generateProductSummary(

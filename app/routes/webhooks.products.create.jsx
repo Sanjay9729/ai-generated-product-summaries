@@ -92,7 +92,7 @@ export const action = async ({ request }) => {
     console.log(`✅ Product "${product.title}" saved to MongoDB successfully`);
 
     // Auto-generate AI summary
-    if (product.title && productData.description) {
+    if (product.title) {
       try {
         console.log(`🤖 Generating AI summary for: ${product.title}`);
 
@@ -117,7 +117,7 @@ export const action = async ({ request }) => {
         // Don't fail the webhook if AI generation fails
       }
     } else {
-      console.log(`⏭️ Skipping AI summary - missing title or description`);
+      console.log(`⏭️ Skipping AI summary - missing title`);
     }
 
     console.log(`🎉 PRODUCTS_CREATE webhook completed successfully for ${shop}`);
