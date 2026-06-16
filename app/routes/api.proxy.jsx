@@ -1,4 +1,5 @@
 import { getAISummary } from "../../database/collections.js";
+import { connectToMongoDB } from "../../database/connection.js";
 import { resolveLocalizedSummary } from "../../backend/services/translationService.js";
 
 // App Proxy handler for storefront requests
@@ -13,6 +14,19 @@ export const loader = async ({ request }) => {
   const shop = url.searchParams.get("shop");
 
   console.log(`[api.proxy] incoming request: productId=${productId} shop=${shop} lang=${lang} signature=${signature}`);
+
+  try {
+    await connectToMongoDB();
+  } catch (dbError) {
+    console.error("[api.proxy] MongoDB connection failed:", dbError);
+    return new Response(
+      JSON.stringify({ error: "Database connection failed" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+      }
+    );
+  }
 
   if (!productId) {
     return new Response(
