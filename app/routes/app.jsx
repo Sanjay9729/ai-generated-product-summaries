@@ -17,6 +17,7 @@ export default function App() {
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
         <s-link href="/app">Home</s-link>
+        <s-link href="/app/languages">Languages</s-link>
         <s-link href="/app/products">Products Sync</s-link>
         <s-link href="/app/mongodb-viewer">Products</s-link>
         <s-link href="/app/ai-summaries">AI Summaries</s-link>

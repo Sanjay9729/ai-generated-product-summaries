@@ -1,14 +1,18 @@
 import { getAISummary } from "../../database/collections.js";
+import { resolveLocalizedSummary } from "../../backend/services/translationService.js";
 
 // App Proxy handler for storefront requests
 // This allows the storefront to call our API via: /apps/ai-summaries
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const productId = url.searchParams.get("id");
+  const lang = url.searchParams.get("lang");
 
   // Verify this is coming from Shopify proxy
   const signature = url.searchParams.get("signature");
   const shop = url.searchParams.get("shop");
+
+  console.log(`[api.proxy] incoming request: productId=${productId} shop=${shop} lang=${lang} signature=${signature}`);
 
   if (!productId) {
     return new Response(
@@ -26,6 +30,7 @@ export const loader = async ({ request }) => {
   try {
     // Fetch AI summary from MongoDB scoped to the requesting shop
     const aiSummary = await getAISummary(productId, shop);
+    console.log(`[api.proxy] aiSummary found? ${!!aiSummary}`);
 
     if (!aiSummary) {
       return new Response(
@@ -44,11 +49,16 @@ export const loader = async ({ request }) => {
       );
     }
 
+    // Resolve the summary for the requested locale, generating and
+    // caching a translation on demand if needed
+    const { enhancedTitle, enhancedDescription } = await resolveLocalizedSummary(aiSummary, lang, shop);
+    console.log(`[api.proxy] resolved result: enhancedTitle=${enhancedTitle} enhancedDescription=${enhancedDescription}`);
+
     // Return the AI-generated content
     return new Response(
       JSON.stringify({
-        productSummary: aiSummary.enhanced_description,
-        enhancedTitle: aiSummary.enhanced_title,
+        productSummary: enhancedDescription,
+        enhancedTitle: enhancedTitle,
         originalTitle: aiSummary.original_title,
         productId: aiSummary.shopify_product_id,
       }),

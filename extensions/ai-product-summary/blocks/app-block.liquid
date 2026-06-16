@@ -22,7 +22,9 @@
     async function fetchAISummary() {
       try {
         // Use Shopify App Proxy URL - this routes through Shopify to your app
-        const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}`;
+        const lang = document.documentElement.lang || 'en';
+        const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}&lang=${lang}`;
+        console.log('[AI Product Summary] fetching:', apiUrl, 'detected lang:', lang);
 
         const response = await fetch(apiUrl);
 
@@ -31,6 +33,7 @@
         }
 
         const data = await response.json();
+        console.log('[AI Product Summary] response data:', data);
 
         const container = document.getElementById(`ai-product-summary-${blockId}`);
 
