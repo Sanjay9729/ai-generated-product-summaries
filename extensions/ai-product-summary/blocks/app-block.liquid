@@ -20,46 +20,67 @@
     const showDescription = {{ block.settings.show_description | json }};
 
     async function fetchAISummary() {
-      try {
-        // Use Shopify App Proxy URL - this routes through Shopify to your app
-        const lang = document.documentElement.lang || 'en';
-        const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}&lang=${lang}`;
-        console.log('[AI Product Summary] fetching:', apiUrl, 'detected lang:', lang);
+      // Use Shopify App Proxy URL - this routes through Shopify to your app
+      const lang = document.documentElement.lang || 'en';
+      const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}&lang=${lang}`;
+      const container = document.getElementById(`ai-product-summary-${blockId}`);
+      // The app host can be cold-starting (e.g. Render free tier), which makes
+      // Shopify's App Proxy return a transient 5xx. Retry a few times with
+      // backoff so a one-off failure doesn't leave the summary blank.
+      const maxAttempts = 4;
 
-        const response = await fetch(apiUrl);
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          console.log('[AI Product Summary] fetching:', apiUrl, 'detected lang:', lang, 'attempt:', attempt);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch AI summary');
-        }
+          const response = await fetch(apiUrl);
 
-        const data = await response.json();
-        console.log('[AI Product Summary] response data:', data);
-
-        const container = document.getElementById(`ai-product-summary-${blockId}`);
-
-        if (data.productSummary || data.enhancedTitle) {
-          let htmlContent = '<div class="ai-product-summary">';
-
-          // Add title if enabled
-          if (showTitle && data.enhancedTitle) {
-            htmlContent += '<h3 class="ai-summary-title">' + data.enhancedTitle + '</h3>';
+          if (!response.ok) {
+            if (response.status >= 500 && attempt < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, attempt * 3000));
+              continue;
+            }
+            throw new Error('Failed to fetch AI summary (status ' + response.status + ')');
           }
 
-          // Add description if enabled
-          if (showDescription && data.productSummary) {
-            htmlContent += '<div class="ai-summary-description"><p>' + data.productSummary + '</p></div>';
+          const data = await response.json();
+          console.log('[AI Product Summary] response data:', data);
+
+          if (!container) {
+            return;
           }
 
-          htmlContent += '</div>';
+          if (data.productSummary || data.enhancedTitle) {
+            let htmlContent = '<div class="ai-product-summary">';
 
-          container.innerHTML = htmlContent;
-        } else {
-          container.innerHTML = '';
+            // Add title if enabled
+            if (showTitle && data.enhancedTitle) {
+              htmlContent += '<h3 class="ai-summary-title">' + data.enhancedTitle + '</h3>';
+            }
+
+            // Add description if enabled
+            if (showDescription && data.productSummary) {
+              htmlContent += '<div class="ai-summary-description"><p>' + data.productSummary + '</p></div>';
+            }
+
+            htmlContent += '</div>';
+
+            container.innerHTML = htmlContent;
+          } else {
+            container.innerHTML = '';
+          }
+          return;
+        } catch (error) {
+          // Network error (e.g. host still waking up) — retry before giving up
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, attempt * 3000));
+            continue;
+          }
+          console.error('Error fetching AI product summary:', error);
+          if (container) {
+            container.innerHTML = '';
+          }
         }
-      } catch (error) {
-        console.error('Error fetching AI product summary:', error);
-        const container = document.getElementById(`ai-product-summary-${blockId}`);
-        container.innerHTML = '';
       }
     }
 

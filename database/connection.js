@@ -19,11 +19,16 @@ export async function connectToMongoDB() {
 
     db = client.db();
 
-    // Run index setup and migration once per server lifetime
+    // Run index setup and migration once per server lifetime.
+    // Do NOT await it: on a cold start the first request (e.g. a storefront
+    // App Proxy call) should not block on collection/index creation, otherwise
+    // it can exceed Shopify's proxy timeout and surface as a 500. Reads and
+    // upserts work correctly regardless of whether indexes exist yet.
     if (!indexesEnsured) {
       indexesEnsured = true;
-      const { ensureIndexes } = await import('./collections.js');
-      await ensureIndexes().catch(err => console.error('Index setup warning:', err.message));
+      import('./collections.js')
+        .then(({ ensureIndexes }) => ensureIndexes())
+        .catch(err => console.error('Index setup warning:', err.message));
     }
 
     return db;
