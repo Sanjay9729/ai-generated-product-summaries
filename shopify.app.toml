@@ -10,7 +10,10 @@ embedded = true
 # Build
 # ---------------------------
 [build]
-automatically_update_urls_on_dev = true
+# Keep this false so `shopify app dev` does not overwrite the production
+# application_url / app_proxy / webhook URLs with a temporary dev tunnel.
+# (A dead tunnel here is what makes the storefront App Proxy return 500.)
+automatically_update_urls_on_dev = false
 
 # ---------------------------
 # Webhooks
