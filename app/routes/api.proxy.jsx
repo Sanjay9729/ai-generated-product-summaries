@@ -20,7 +20,7 @@ export const loader = async ({ request }) => {
   } catch (dbError) {
     console.error("[api.proxy] MongoDB connection failed:", dbError);
     return new Response(
-      JSON.stringify({ error: "Database connection failed" }),
+      JSON.stringify({ error: "Database connection failed", detail: dbError?.message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
@@ -87,7 +87,7 @@ export const loader = async ({ request }) => {
   } catch (error) {
     console.error("Error fetching AI summary via proxy:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to fetch AI summary" }),
+      JSON.stringify({ error: "Failed to fetch AI summary", detail: error?.message }),
       {
         status: 500,
         headers: {
