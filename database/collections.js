@@ -12,6 +12,16 @@ export const COLLECTIONS = {
 export async function ensureIndexes() {
   const db = await getDatabase();
 
+  // Explicitly create all collections so they appear in Atlas even before data is written
+  const existingCollections = await db.listCollections().toArray();
+  const existingNames = existingCollections.map((c) => c.name);
+  for (const name of Object.values(COLLECTIONS)) {
+    if (!existingNames.includes(name)) {
+      await db.createCollection(name);
+      console.log(`✅ Created collection: ${name}`);
+    }
+  }
+
   // Compound indexes for shop-scoped queries
   await db.collection(COLLECTIONS.PRODUCTS).createIndex(
     { shop: 1, shopify_product_id: 1 },

@@ -353,6 +353,42 @@ function Index({ loaderData }) {
         </>
       ),
     },
+    {
+      title: "Step 7: Set Language for AI Summaries",
+      image: null,
+      content: (
+        <>
+          <s-paragraph>
+            The <s-text emphasis="strong">Languages</s-text> section (found in the left sidebar menu under your app) lets you choose in which language the AI generates product titles and descriptions shown to your storefront visitors.
+          </s-paragraph>
+          <s-paragraph>
+            <s-text emphasis="subdued">By default, the AI generates summaries in your store&apos;s primary language. You can change this to any of 30+ supported languages — even languages not configured in your Shopify store settings.</s-text>
+          </s-paragraph>
+          <s-ordered-list>
+            <s-list-item>
+              In the app sidebar, click <s-text emphasis="strong">Languages</s-text>
+            </s-list-item>
+            <s-list-item>
+              You will see a <s-text emphasis="strong">Primary language</s-text> dropdown showing all available languages
+            </s-list-item>
+            <s-list-item>
+              Select the language you want the AI to use (e.g., Hindi, Spanish, French, Arabic, Japanese, etc.)
+            </s-list-item>
+            <s-list-item>
+              Click <s-text emphasis="strong">Save</s-text> — a green badge will confirm the active language
+            </s-list-item>
+            <s-list-item>
+              From now on, all AI-generated product summaries will be written in the selected language
+            </s-list-item>
+          </s-ordered-list>
+          <s-paragraph>
+            <s-text emphasis="subdued">
+              <s-text emphasis="strong">Supported languages include:</s-text> English, Hindi, Spanish, French, German, Italian, Portuguese, Dutch, Japanese, Chinese (Simplified &amp; Traditional), Arabic, Korean, Russian, Turkish, Polish, Swedish, and many more.
+            </s-text>
+          </s-paragraph>
+        </>
+      ),
+    },
   ];
 
   return (
