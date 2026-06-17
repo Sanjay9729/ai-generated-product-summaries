@@ -98,6 +98,28 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+app.get('/api/debug-errors', async (req, res) => {
+  try {
+    const { getDatabase } = await import('./database/connection.js');
+    const db = await getDatabase();
+    const errors = await db.collection('app_errors')
+      .find()
+      .sort({ created_at: -1 })
+      .limit(20)
+      .toArray();
+    res.json({
+      success: true,
+      count: errors.length,
+      errors: errors
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Serve static assets
 const CLIENT_BUILD_DIR = path.join(__dirname, 'build', 'client');
 app.use(
