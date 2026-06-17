@@ -5,9 +5,13 @@ import { connectToMongoDB } from "../../database/connection.js";
 // This allows the storefront to call our API via: /apps/ai-summaries
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
-  const productId = url.searchParams.get("id");
-
+  const rawId = url.searchParams.get("id");
   const shop = url.searchParams.get("shop");
+
+  // Reconstruct full GID if only numeric ID was sent (avoids gid:// in proxy URL)
+  const productId = rawId && !rawId.startsWith("gid://")
+    ? `gid://shopify/Product/${rawId}`
+    : rawId;
 
   if (!productId) {
     return new Response(

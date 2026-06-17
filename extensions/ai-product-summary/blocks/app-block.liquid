@@ -22,7 +22,7 @@
     async function fetchAISummary() {
       try {
         // Use Shopify App Proxy URL - this routes through Shopify to your app
-        const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}`;
+        const apiUrl = `/apps/ai-summaries?id=${productId}`;
 
         const response = await fetch(apiUrl);
 
