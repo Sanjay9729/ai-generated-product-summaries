@@ -192,3 +192,16 @@ export async function getLatestInstallationJob(shopUrl) {
   );
   return job;
 }
+
+export async function logError(errorData) {
+  try {
+    const db = await getDatabase();
+    const collection = db.collection('app_errors');
+    await collection.insertOne({
+      ...errorData,
+      created_at: new Date()
+    });
+  } catch (err) {
+    console.error('Failed to log error to database:', err.message);
+  }
+}
