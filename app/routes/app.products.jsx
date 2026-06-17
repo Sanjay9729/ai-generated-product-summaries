@@ -137,29 +137,29 @@ export default function ProductsPage() {
           </s-box>
         )}
 
-        {/* <s-section heading="Troubleshooting">
+        <s-section heading="Troubleshooting">
           <s-paragraph>
             If new products aren't automatically syncing to MongoDB, try these steps:
           </s-paragraph>
 
           <s-stack direction="inline" gap="base">
-            <s-button 
+            <s-button
               onClick={handleCheckWebhookStatus}
               disabled={isSyncing}
               variant="tertiary"
             >
               Check Webhook Status
             </s-button>
-            
-            <s-button 
+
+            <s-button
               onClick={handleRegisterWebhooks}
               disabled={isSyncing}
               variant="tertiary"
             >
               Register Webhooks
             </s-button>
-            
-            <s-button 
+
+            <s-button
               onClick={handleManualSync}
               disabled={isSyncing}
               {...(isSyncing ? { loading: true } : {})}
@@ -173,7 +173,7 @@ export default function ProductsPage() {
               Webhooks should automatically handle product sync, but manual sync is available as a fallback.
             </s-text>
           </s-paragraph>
-        </s-section> */}
+        </s-section>
 
         <s-paragraph>
           <s-text variant="bodySm" tone="subdued">
