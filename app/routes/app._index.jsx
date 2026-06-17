@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router";
 import PropTypes from "prop-types";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -171,6 +172,7 @@ export const action = async ({ request }) => {
 
 function Index({ loaderData }) {
   const shopify = useAppBridge();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (loaderData?.isFirstInstall && loaderData?.autoSyncTriggered) {
@@ -350,6 +352,65 @@ function Index({ loaderData }) {
               Navigate to a product page to see the AI-enhanced summary
             </s-list-item>
           </s-ordered-list>
+        </>
+      ),
+    },
+    {
+      title: "Step 7: Set Your Storefront Language",
+      image: null,
+      content: (
+        <>
+          <s-paragraph>
+            Choose the language in which AI-generated product titles and descriptions will be displayed to all your storefront visitors. This is especially useful if your store serves a non-English speaking audience.
+          </s-paragraph>
+
+          <s-paragraph>
+            <s-text emphasis="strong">How it works:</s-text>
+          </s-paragraph>
+
+          <s-unordered-list>
+            <s-list-item>
+              By default, AI summaries are generated in <s-text emphasis="strong">English</s-text>.
+            </s-list-item>
+            <s-list-item>
+              When you select a different primary language (e.g., French, German, Spanish), the app will automatically translate the AI-generated content into that language.
+            </s-list-item>
+            <s-list-item>
+              Translations are generated on demand and cached — so the first visitor may see a brief loading moment, but every subsequent visitor sees the translated content instantly.
+            </s-list-item>
+            <s-list-item>
+              All storefront visitors will see the AI summary in the language you select here, regardless of their browser language.
+            </s-list-item>
+          </s-unordered-list>
+
+          <s-paragraph>
+            <s-text emphasis="strong">Steps to configure:</s-text>
+          </s-paragraph>
+
+          <s-ordered-list>
+            <s-list-item>
+              Click the <s-text emphasis="strong">Go to Language Settings</s-text> button below, or navigate to <s-text emphasis="strong">Languages</s-text> from the left sidebar.
+            </s-list-item>
+            <s-list-item>
+              Select your desired <s-text emphasis="strong">Primary Language</s-text> from the dropdown. The list includes your store's configured languages as well as 30+ additional languages supported by the AI.
+            </s-list-item>
+            <s-list-item>
+              Click <s-text emphasis="strong">Save</s-text>. The active language badge will update to confirm your selection.
+            </s-list-item>
+            <s-list-item>
+              Visit any product page on your storefront — the AI-generated title and description will now appear in the selected language.
+            </s-list-item>
+          </s-ordered-list>
+
+          <s-paragraph>
+            <s-text emphasis="subdued">
+              Note: Changing the language does not affect your original Shopify product data. It only controls the language of the AI-generated content shown by this app block.
+            </s-text>
+          </s-paragraph>
+
+          <s-button variant="primary" onClick={() => navigate('/app/languages')}>
+            Go to Language Settings
+          </s-button>
         </>
       ),
     },
