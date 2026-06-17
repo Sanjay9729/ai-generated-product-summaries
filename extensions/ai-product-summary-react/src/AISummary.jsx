@@ -33,8 +33,8 @@ const AISummary = () => {
       const data = await response.json();
       console.log('[AISummary] response data:', data);
 
-      if (data.productSummary) {
-        setProductSummary(data.productSummary);
+      if (data.productSummary || data.enhancedTitle) {
+        setProductSummary(data.productSummary || '');
         setEnhancedTitle(data.enhancedTitle || '');
       }
 
@@ -59,7 +59,7 @@ const AISummary = () => {
     );
   }
 
-  if (error || !productSummary) {
+  if (error || (!productSummary && !enhancedTitle)) {
     return null;
   }
 
@@ -68,12 +68,16 @@ const AISummary = () => {
       {enhancedTitle && (
         <h3 className="ai-summary-title">{enhancedTitle}</h3>
       )}
-      <div className="ai-summary-description">
-        <p>{productSummary}</p>
-      </div>
-      <div className="ai-summary-badge">
-        <span>✨ AI Enhanced Description</span>
-      </div>
+      {productSummary && (
+        <>
+          <div className="ai-summary-description">
+            <p>{productSummary}</p>
+          </div>
+          <div className="ai-summary-badge">
+            <span>✨ AI Enhanced Description</span>
+          </div>
+        </>
+      )}
     </div>
   );
 };

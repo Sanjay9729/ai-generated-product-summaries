@@ -4,6 +4,7 @@ import { authenticate } from "../shopify.server";
 import { getShopSettings, saveShopSettings } from "../../database/collections.js";
 import { getShopLocales } from "../../backend/services/shopLocaleService.js";
 import { connectToMongoDB } from "../../database/connection.js";
+import "../styles/setupGuide.css";
 
 // Common languages offered for AI-generated translations even if the
 // store hasn't configured them under Settings > Languages. The AI
@@ -87,13 +88,6 @@ export const action = async ({ request }) => {
   return { saved: true };
 };
 
-const cardStyle = {
-  border: "1px solid #e1e3e5",
-  borderRadius: "8px",
-  backgroundColor: "#fff",
-  padding: "24px",
-};
-
 function LanguageDropdown({ locales, defaultValue }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(defaultValue);
@@ -141,7 +135,13 @@ function LanguageDropdown({ locales, defaultValue }) {
           }}
         >
           <span>{label}</span>
-          <span style={{ pointerEvents: "none", color: "#6d7175", fontSize: "12px" }}>▼</span>
+          <svg
+            style={{ pointerEvents: "none", flexShrink: 0 }}
+            width="20" height="20" viewBox="0 0 20 20" fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="#6d7175" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
 
         {open && (
@@ -191,6 +191,23 @@ function LanguageDropdown({ locales, defaultValue }) {
   );
 }
 
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 16px',
+  },
+  card: {
+    padding: '24px',
+    border: '1px solid #e1e3e5',
+    borderRadius: '8px',
+    backgroundColor: '#fff',
+  },
+};
+
 export default function LanguagesPage() {
   const { shopLocales, primaryLanguage } = useLoaderData();
   const actionData = useActionData();
@@ -200,51 +217,55 @@ export default function LanguagesPage() {
 
   return (
     <s-page heading="AI Summary Languages" inlineSize="large">
-      <s-stack direction="block" gap="large">
-        <s-banner tone="info">
-          <s-paragraph>
-            Choose the language for your AI-generated product titles and
-            descriptions. This language is shown to all storefront visitors.
-          </s-paragraph>
-        </s-banner>
+      <div className="setup-guide-wrapper">
+        <div style={styles.container}>
 
-        {actionData?.saved && (
-          <s-banner tone="success">
-            <s-paragraph>Language settings saved.</s-paragraph>
+          <s-banner tone="info">
+            <s-paragraph>
+              Choose the language for your AI-generated product titles and
+              descriptions. This language is shown to all storefront visitors.
+            </s-paragraph>
           </s-banner>
-        )}
 
-        <div style={cardStyle}>
-          <s-stack direction="inline" gap="base" inlineAlignment="space-between" blockAlignment="center">
-            <s-text variant="headingMd">Language settings</s-text>
-            <s-badge tone="success">Active: {currentLanguageName}</s-badge>
-          </s-stack>
+          {actionData?.saved && (
+            <s-banner tone="success">
+              <s-paragraph>Language settings saved.</s-paragraph>
+            </s-banner>
+          )}
 
-          <s-box paddingBlockStart="base">
-            {shopLocales.length === 0 ? (
-              <s-paragraph>
-                No languages found for this store. Configure languages in Shopify
-                under Settings → Languages.
-              </s-paragraph>
-            ) : (
-              <Form method="post">
-                <s-stack direction="block" gap="base">
-                  <s-paragraph>
-                    Select the primary language for AI-generated summaries shown
-                    to your storefront visitors.
-                  </s-paragraph>
+          <div style={styles.card}>
+            <s-stack direction="block" gap="base">
+              <s-stack direction="inline" gap="base" inlineAlignment="space-between" blockAlignment="center">
+                <s-text variant="headingMd">Language Settings</s-text>
+                <s-badge tone="success">Active: {currentLanguageName}</s-badge>
+              </s-stack>
 
-                  <LanguageDropdown locales={shopLocales} defaultValue={primaryLanguage} />
+              {shopLocales.length === 0 ? (
+                <s-paragraph>
+                  No languages found for this store. Configure languages in Shopify
+                  under Settings → Languages.
+                </s-paragraph>
+              ) : (
+                <Form method="post">
+                  <s-stack direction="block" gap="base">
+                    <s-paragraph>
+                      Select the primary language for AI-generated summaries shown
+                      to your storefront visitors.
+                    </s-paragraph>
 
-                  <s-button type="submit" variant="primary" disabled={isSaving}>
-                    {isSaving ? "Saving..." : "Save"}
-                  </s-button>
-                </s-stack>
-              </Form>
-            )}
-          </s-box>
+                    <LanguageDropdown locales={shopLocales} defaultValue={primaryLanguage} />
+
+                    <s-button type="submit" variant="primary" disabled={isSaving}>
+                      {isSaving ? "Saving..." : "Save"}
+                    </s-button>
+                  </s-stack>
+                </Form>
+              )}
+            </s-stack>
+          </div>
+
         </div>
-      </s-stack>
+      </div>
     </s-page>
   );
 }
