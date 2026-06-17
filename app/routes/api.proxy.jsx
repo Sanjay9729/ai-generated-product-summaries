@@ -1,4 +1,5 @@
 import { getAISummary } from "../../database/collections.js";
+import { connectToMongoDB } from "../../database/connection.js";
 
 // App Proxy handler for storefront requests
 // This allows the storefront to call our API via: /apps/ai-summaries
@@ -6,8 +7,6 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const productId = url.searchParams.get("id");
 
-  // Verify this is coming from Shopify proxy
-  const signature = url.searchParams.get("signature");
   const shop = url.searchParams.get("shop");
 
   if (!productId) {
@@ -24,6 +23,8 @@ export const loader = async ({ request }) => {
   }
 
   try {
+    await connectToMongoDB();
+
     // Fetch AI summary from MongoDB scoped to the requesting shop
     const aiSummary = await getAISummary(productId, shop);
 
