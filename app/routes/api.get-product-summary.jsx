@@ -60,7 +60,11 @@ export const loader = async ({ request }) => {
   } catch (error) {
     console.error("Error fetching AI summary:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to fetch AI summary" }),
+      JSON.stringify({
+        error: "Failed to fetch AI summary",
+        message: error.message,
+        stack: error.stack
+      }),
       {
         status: 500,
         headers: {

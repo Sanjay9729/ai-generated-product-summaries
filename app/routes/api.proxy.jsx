@@ -74,7 +74,11 @@ export const loader = async ({ request }) => {
     console.error("[PROXY] Error:", error.name, error.message);
     console.error("[PROXY] Stack:", error.stack);
     return new Response(
-      JSON.stringify({ error: "Failed to fetch AI summary" }),
+      JSON.stringify({
+        error: "Failed to fetch AI summary",
+        message: error.message,
+        stack: error.stack
+      }),
       {
         status: 500,
         headers: {
