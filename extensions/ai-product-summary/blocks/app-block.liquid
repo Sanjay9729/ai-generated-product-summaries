@@ -22,7 +22,9 @@
     async function fetchAISummary() {
       try {
         // Use Shopify App Proxy URL - this routes through Shopify to your app
-        const apiUrl = `/apps/ai-summaries?id=${productId}`;
+        const lang = document.documentElement.lang || 'en';
+        const apiUrl = `/apps/ai-summaries?id=gid://shopify/Product/${productId}&lang=${lang}`;
+        console.log('[AI Product Summary] fetching:', apiUrl, 'detected lang:', lang);
 
         const response = await fetch(apiUrl);
 
@@ -31,25 +33,32 @@
         }
 
         const data = await response.json();
+        console.log('[AI Product Summary] response data:', data);
 
         const container = document.getElementById(`ai-product-summary-${blockId}`);
 
         if (data.productSummary || data.enhancedTitle) {
-          let htmlContent = '<div class="ai-product-summary">';
+          const wrapper = document.createElement('div');
+          wrapper.className = 'ai-product-summary';
 
-          // Add title if enabled
           if (showTitle && data.enhancedTitle) {
-            htmlContent += '<h3 class="ai-summary-title">' + data.enhancedTitle + '</h3>';
+            const h3 = document.createElement('h3');
+            h3.className = 'ai-summary-title';
+            h3.textContent = data.enhancedTitle;
+            wrapper.appendChild(h3);
           }
 
-          // Add description if enabled
           if (showDescription && data.productSummary) {
-            htmlContent += '<div class="ai-summary-description"><p>' + data.productSummary + '</p></div>';
+            const descDiv = document.createElement('div');
+            descDiv.className = 'ai-summary-description';
+            const p = document.createElement('p');
+            p.textContent = data.productSummary;
+            descDiv.appendChild(p);
+            wrapper.appendChild(descDiv);
           }
 
-          htmlContent += '</div>';
-
-          container.innerHTML = htmlContent;
+          container.innerHTML = '';
+          container.appendChild(wrapper);
         } else {
           container.innerHTML = '';
         }
