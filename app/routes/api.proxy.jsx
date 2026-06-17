@@ -13,15 +13,20 @@ export const loader = async ({ request }) => {
     ? `gid://shopify/Product/${rawId}`
     : rawId;
 
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  };
+
   if (!productId) {
     return new Response(
       JSON.stringify({ error: "Product ID is required" }),
       {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
+        headers: defaultHeaders
       }
     );
   }
@@ -46,10 +51,7 @@ export const loader = async ({ request }) => {
         }),
         {
           status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
+          headers: defaultHeaders
         }
       );
     }
@@ -64,10 +66,7 @@ export const loader = async ({ request }) => {
       }),
       {
         status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
+        headers: defaultHeaders
       }
     );
   } catch (error) {
@@ -93,10 +92,7 @@ export const loader = async ({ request }) => {
       }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
+        headers: defaultHeaders
       }
     );
   }
