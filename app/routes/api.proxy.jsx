@@ -1,4 +1,4 @@
-import { getAISummary } from "../../database/collections.js";
+import { getAISummary, logError } from "../../database/collections.js";
 import { connectToMongoDB } from "../../database/connection.js";
 
 // App Proxy handler for storefront requests
@@ -73,6 +73,18 @@ export const loader = async ({ request }) => {
   } catch (error) {
     console.error("[PROXY] Error:", error.name, error.message);
     console.error("[PROXY] Stack:", error.stack);
+    
+    // Log error to MongoDB for remote debugging
+    await logError({
+      location: "api.proxy.jsx",
+      error_name: error.name,
+      error_message: error.message,
+      error_stack: error.stack,
+      url: request.url,
+      shop: shop,
+      productId: productId
+    }).catch(err => console.error("Failed to log error to DB:", err.message));
+
     return new Response(
       JSON.stringify({
         error: "Failed to fetch AI summary",
