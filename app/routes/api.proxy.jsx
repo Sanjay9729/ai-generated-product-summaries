@@ -23,10 +23,15 @@ export const loader = async ({ request }) => {
   }
 
   try {
+    console.log(`[PROXY] productId=${productId} shop=${shop}`);
+    console.log(`[PROXY] MONGODB_URI set: ${!!process.env.MONGODB_URI}`);
+
     await connectToMongoDB();
+    console.log("[PROXY] MongoDB connected successfully");
 
     // Fetch AI summary from MongoDB scoped to the requesting shop
     const aiSummary = await getAISummary(productId, shop);
+    console.log(`[PROXY] aiSummary found: ${!!aiSummary}`);
 
     if (!aiSummary) {
       return new Response(
@@ -62,7 +67,8 @@ export const loader = async ({ request }) => {
       }
     );
   } catch (error) {
-    console.error("Error fetching AI summary via proxy:", error);
+    console.error("[PROXY] Error:", error.name, error.message);
+    console.error("[PROXY] Stack:", error.stack);
     return new Response(
       JSON.stringify({ error: "Failed to fetch AI summary" }),
       {
