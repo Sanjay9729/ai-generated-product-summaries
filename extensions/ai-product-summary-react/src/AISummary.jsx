@@ -21,15 +21,17 @@ const AISummary = () => {
       }
 
       const shopUrl = window.location.hostname;
-      const response = await fetch(
-        `https://${shopUrl}/apps/ai-generated-product-summaries/api/get-product-summary?id=${productGid}`
-      );
+      const lang = document.documentElement.lang || 'en';
+      const apiUrl = `https://${shopUrl}/apps/ai-generated-product-summaries/api/get-product-summary?id=${productGid}&lang=${lang}`;
+      console.log('[AISummary] fetching:', apiUrl, 'detected lang:', lang);
+      const response = await fetch(apiUrl);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
 
       const data = await response.json();
+      console.log('[AISummary] response data:', data);
 
       if (data.productSummary) {
         setProductSummary(data.productSummary);

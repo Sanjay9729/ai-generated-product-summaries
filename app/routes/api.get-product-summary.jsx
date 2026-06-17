@@ -1,4 +1,5 @@
 import { getAISummary } from "../../database/collections.js";
+import { resolveLocalizedSummary } from "../../backend/services/translationService.js";
 
 // This API endpoint is called from the theme app extension (storefront)
 export const loader = async ({ request }) => {
@@ -6,6 +7,9 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const productId = url.searchParams.get("id");
   const shop = url.searchParams.get("shop");
+  const lang = url.searchParams.get("lang");
+
+  console.log(`[api.get-product-summary] incoming request: productId=${productId} shop=${shop} lang=${lang}`);
 
   if (!productId) {
     return new Response(
@@ -23,6 +27,7 @@ export const loader = async ({ request }) => {
   try {
     // Fetch AI summary from MongoDB scoped to shop
     const aiSummary = await getAISummary(productId, shop);
+    console.log(`[api.get-product-summary] aiSummary found? ${!!aiSummary}`);
 
     if (!aiSummary) {
       return new Response(
@@ -41,11 +46,16 @@ export const loader = async ({ request }) => {
       );
     }
 
+    // Resolve the summary for the requested locale, generating and
+    // caching a translation on demand if needed
+    const { enhancedTitle, enhancedDescription } = await resolveLocalizedSummary(aiSummary, lang, shop);
+    console.log(`[api.get-product-summary] resolved result: enhancedTitle=${enhancedTitle} enhancedDescription=${enhancedDescription}`);
+
     // Return the AI-generated content
     return new Response(
       JSON.stringify({
-        productSummary: aiSummary.enhanced_description,
-        enhancedTitle: aiSummary.enhanced_title,
+        productSummary: enhancedDescription,
+        enhancedTitle: enhancedTitle,
         originalTitle: aiSummary.original_title,
         productId: aiSummary.shopify_product_id,
       }),
@@ -60,11 +70,7 @@ export const loader = async ({ request }) => {
   } catch (error) {
     console.error("Error fetching AI summary:", error);
     return new Response(
-      JSON.stringify({
-        error: "Failed to fetch AI summary",
-        message: error.message,
-        stack: error.stack
-      }),
+      JSON.stringify({ error: "Failed to fetch AI summary" }),
       {
         status: 500,
         headers: {

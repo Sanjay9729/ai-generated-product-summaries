@@ -4,11 +4,47 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-export async function generateProductSummary(productTitle, productDescription) {
+// Maps locale codes to the language name used in AI prompts
+const LANGUAGE_NAMES = {
+  en: 'English',
+  fr: 'French',
+  de: 'German',
+  es: 'Spanish',
+  it: 'Italian',
+  pt: 'Portuguese',
+  nl: 'Dutch',
+  ja: 'Japanese',
+  zh: 'Chinese',
+  ar: 'Arabic',
+  hi: 'Hindi',
+  ko: 'Korean',
+  ru: 'Russian',
+  tr: 'Turkish',
+  pl: 'Polish',
+  sv: 'Swedish',
+  no: 'Norwegian',
+  da: 'Danish',
+  fi: 'Finnish',
+  el: 'Greek',
+  cs: 'Czech',
+  ro: 'Romanian',
+  hu: 'Hungarian',
+  th: 'Thai',
+  vi: 'Vietnamese',
+  id: 'Indonesian',
+  ms: 'Malay',
+  uk: 'Ukrainian',
+  he: 'Hebrew',
+  bn: 'Bengali',
+};
+
+export async function generateProductSummary(productTitle, productDescription, targetLanguage = 'en') {
   try {
-    console.log(`Generating AI summary for: ${productTitle}`);
+    console.log(`Generating AI summary for: ${productTitle} (${targetLanguage})`);
 
     const hasDescription = !!productDescription;
+    const languageName = LANGUAGE_NAMES[targetLanguage] || targetLanguage;
+    const languageInstruction = `- Write the enhancedTitle and enhancedDescription in ${languageName}`;
 
     const prompt = hasDescription
       ? `You are a product summarizer. Create a concise, engaging 2-sentence product summary.
@@ -18,20 +54,19 @@ Details: ${productDescription}
 
 Requirements:
 - Write EXACTLY 2 sentences (not 2 lines)
-- Keep it descriptive but concise (around 25-35 words total)
+- Keep it descriptive but concise
 - Make the title more compelling and unique (different from original title)
 - Include specific details about materials, design, or features
 - End with how it enhances the wearer's style or appearance
 - Make it engaging but not overly long
+${languageInstruction}
 
 Example style:
 "The Boho Bangle Bracelet is a stylish gold bangle adorned with multicolor tassels. Its bohemian design makes it a perfect accessory for adding a touch of eclectic charm to any outfit."
 
-Return ONLY JSON:
-{
-  "enhancedTitle": "Create a compelling, unique title (NOT the same as original)",
-  "enhancedDescription": "Your 2-sentence summary here (25-35 words)"
-}`
+Your response must be a valid JSON object containing exactly two keys:
+"enhancedTitle": string value (the enhanced title in ${languageName})
+"enhancedDescription": string value (the 2-sentence summary in ${languageName})`
       : `You are a product title enhancer. Create a more compelling, unique product title.
 
 Product: ${productTitle}
@@ -40,12 +75,11 @@ Requirements:
 - Make the title more compelling, unique, and marketable
 - Keep it concise (3-8 words)
 - Do NOT invent a description — only enhance the title
+${languageInstruction}
 
-Return ONLY JSON:
-{
-  "enhancedTitle": "Your improved title here",
-  "enhancedDescription": ""
-}`;
+Your response must be a valid JSON object containing exactly two keys:
+"enhancedTitle": string value (the enhanced title in ${languageName})
+"enhancedDescription": string value (always an empty string "")`;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [
@@ -54,13 +88,14 @@ Return ONLY JSON:
           content: prompt,
         },
       ],
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.7,
-      max_tokens: 200,
+      max_tokens: 1024,
       response_format: { type: 'json_object' },
     });
 
     const response = chatCompletion.choices[0]?.message?.content;
+    console.log("RAW GROQ RESPONSE:", response);
 
     if (!response) {
       throw new Error('No response from Groq AI');
@@ -116,3 +151,52 @@ export async function generateBulkProductSummaries(products) {
 
   return results;
 }
+
+export async function translateProductSummary(title, description, targetLanguage) {
+  try {
+    const languageName = LANGUAGE_NAMES[targetLanguage] || targetLanguage;
+    console.log(`Translating AI summary to: ${languageName}`);
+
+    const prompt = `You are a professional translator. Translate the following product title and description from English to ${languageName}.
+
+Title: ${title}
+Description: ${description}
+
+Your response must be a valid JSON object containing exactly two keys:
+"enhancedTitle": string value (the translated title in ${languageName})
+"enhancedDescription": string value (the translated description in ${languageName})`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.3,
+      max_tokens: 1024,
+      response_format: { type: 'json_object' },
+    });
+
+    const response = chatCompletion.choices[0]?.message?.content;
+    console.log(`[translateProductSummary] RAW GROQ RESPONSE (${languageName}):`, response);
+
+    if (!response) {
+      throw new Error('No response from Groq AI');
+    }
+
+    const parsedResponse = JSON.parse(response);
+
+    console.log(`✓ Translation generated for "${title}" -> ${languageName}`);
+
+    return {
+      enhancedTitle: parsedResponse.enhancedTitle || title,
+      enhancedDescription: parsedResponse.enhancedDescription || description,
+    };
+  } catch (error) {
+    console.error(`[translateProductSummary] Error translating to ${targetLanguage}:`, error);
+    throw error;
+  }
+}
+

@@ -5,6 +5,7 @@ export const COLLECTIONS = {
   SYNC_LOGS: 'sync_logs',
   AI_SUMMARIES: 'ai_summaries',
   INSTALLATION_JOBS: 'installation_jobs',
+  SHOP_SETTINGS: 'shop_settings',
 };
 
 // Ensure indexes for multi-tenant shop scoping
@@ -129,6 +130,20 @@ export async function getAISummary(shopifyProductId, shop) {
   return summary;
 }
 
+export async function saveAISummaryTranslation(shopifyProductId, shop, lang, translation) {
+  const collection = await getAISummariesCollection();
+  const result = await collection.updateOne(
+    { shopify_product_id: shopifyProductId, shop },
+    {
+      $set: {
+        [`translations.${lang}`]: translation,
+        updated_at: new Date(),
+      },
+    }
+  );
+  return result;
+}
+
 export async function getAllAISummaries(shop) {
   const collection = await getAISummariesCollection();
   const summaries = await collection.find({ shop }).toArray();
@@ -184,6 +199,32 @@ export async function getJobStatus(jobId) {
   return job;
 }
 
+export async function getShopSettingsCollection() {
+  const db = await getDatabase();
+  return db.collection(COLLECTIONS.SHOP_SETTINGS);
+}
+
+export async function getShopSettings(shop) {
+  const collection = await getShopSettingsCollection();
+  return collection.findOne({ shop });
+}
+
+export async function saveShopSettings(shop, settings) {
+  const collection = await getShopSettingsCollection();
+  const result = await collection.updateOne(
+    { shop },
+    {
+      $set: {
+        ...settings,
+        shop,
+        updated_at: new Date(),
+      },
+    },
+    { upsert: true }
+  );
+  return result;
+}
+
 export async function getLatestInstallationJob(shopUrl) {
   const collection = await getInstallationJobsCollection();
   const job = await collection.findOne(
@@ -191,17 +232,4 @@ export async function getLatestInstallationJob(shopUrl) {
     { sort: { created_at: -1 } }
   );
   return job;
-}
-
-export async function logError(errorData) {
-  try {
-    const db = await getDatabase();
-    const collection = db.collection('app_errors');
-    await collection.insertOne({
-      ...errorData,
-      created_at: new Date()
-    });
-  } catch (err) {
-    console.error('Failed to log error to database:', err.message);
-  }
 }
