@@ -1,6 +1,27 @@
 import { updateProduct, logSync, saveAISummary, getAISummary } from '../../database/collections.js';
 import { generateProductSummary } from './groqAIService.js';
 
+// Wraps generateProductSummary with up to 3 retries and exponential backoff
+// to handle Groq rate limit errors during bulk sync.
+async function generateProductSummaryWithRetry(title, description, maxRetries = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await generateProductSummary(title, description);
+    } catch (err) {
+      lastError = err;
+      const isRateLimit =
+        err.status === 429 ||
+        (err.message && err.message.toLowerCase().includes('rate limit'));
+      if (!isRateLimit || attempt === maxRetries) throw err;
+      const delay = attempt * 3000; // 3s, 6s, 9s
+      console.warn(`[AI] Rate limit hit for "${title}", retrying in ${delay}ms (attempt ${attempt}/${maxRetries})...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
 export async function fetchAllShopifyProducts(admin) {
   let allProducts = [];
   let hasNextPage = true;
@@ -187,7 +208,7 @@ export async function syncProductsToMongoDB(admin, shop) {
         if (!existingSummary && product.title) {
           console.log(`Generating AI summary for: ${product.title}`);
 
-          const aiSummary = await generateProductSummary(
+          const aiSummary = await generateProductSummaryWithRetry(
             product.title,
             product.description
           );
@@ -204,8 +225,8 @@ export async function syncProductsToMongoDB(admin, shop) {
 
           console.log(`✓ AI summary generated for: ${product.title}`);
 
-          // Small delay to avoid rate limiting
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Delay between products to stay within Groq rate limits
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       } catch (aiError) {
         console.error(`Failed to generate AI summary for ${product.title}:`, aiError.message);
